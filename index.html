@@ -1,0 +1,1418 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Głucha przestrzeń</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Stencil+Display:wght@500;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Stencil:wght@500;700;800&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --ground:#0b0d0c;
+  --ink:#d8d2c2;
+  --ink-dim:#8f8c81;
+  --ink-faint:#5a5a54;
+  --steel:#7f8b88;
+  --rubin:#c8362b;
+  --signal:#5fcf8f;
+  --gold:#f0b440;
+  --line:rgba(216,210,194,.16);
+  --panel:rgba(9,11,10,.78);
+  --scrim:rgba(8,10,9,.86);
+  --serif:"Old Standard TT", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --stencil:"Big Shoulders Stencil Display","Big Shoulders Stencil","Oswald","Arial Narrow","Roboto Condensed",sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --col: 34rem;
+}
+body.frost{
+  --ground:#e9edee;
+  --ink:#1c2226;
+  --ink-dim:#56606a;
+  --ink-faint:#9aa3aa;
+  --line:rgba(28,34,38,.18);
+  --panel:rgba(236,240,241,.8);
+  --scrim:rgba(233,237,238,.8);
+}
+html{background:var(--ground);}
+body{
+  background:var(--ground);
+  color:var(--ink);
+  font-family:var(--serif);
+  font-size:16px;
+  transition:background-color 4s ease, color 4s ease;
+  overflow-x:hidden;
+}
+body.locked{overflow:hidden;}
+::selection{background:rgba(240,180,64,.35);}
+
+/* ---------- warstwy ---------- */
+#scene{position:fixed;inset:0;width:100%;height:100%;z-index:0;display:block;background:#0b0d0c;}
+#scrim{position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(90deg,var(--scrim) 0%, var(--scrim) calc(var(--col) + 6vw), rgba(0,0,0,0) calc(var(--col) + 22vw));
+  transition:opacity 1.2s ease, background 4s ease;}
+#night{position:fixed;inset:0;z-index:3;pointer-events:none;opacity:0;transition:opacity 2.5s ease;
+  background:radial-gradient(circle at var(--mx,40%) var(--my,55%), rgba(4,5,7,0) 0, rgba(4,5,7,0) var(--lr,120px), rgba(4,5,7,.965) calc(var(--lr,120px)*2.4));}
+#topfade{position:fixed;left:0;right:0;top:0;height:calc(64px + env(safe-area-inset-top,0px));z-index:4;pointer-events:none;background:linear-gradient(180deg,var(--ground) 30%,rgba(0,0,0,0));opacity:.92;transition:background 4s ease;}
+#flash{position:fixed;inset:0;z-index:7;pointer-events:none;opacity:0;background:#f4f1e8;transition:opacity 3s ease;}
+
+/* ---------- opowieść ---------- */
+#story{position:relative;z-index:2;
+  width:min(var(--col), calc(100% - 32px));
+  margin-left:clamp(16px, 7vw, 120px);
+  padding-block:22vh 40vh;}
+.block{padding-block:4vh;}
+.block + .block.cont{padding-top:0;}
+.ch-head{display:grid;gap:.35rem;margin:10vh 0 3.2rem;}
+.ch-no{font-family:var(--mono);font-size:.72rem;letter-spacing:.28em;color:var(--ink-dim);text-transform:uppercase;display:flex;align-items:center;gap:.8rem;}
+.ch-no::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent);}
+.ch-title{font-family:var(--stencil);font-weight:800;font-size:clamp(2.6rem,6vw,4.6rem);line-height:.9;letter-spacing:.02em;text-transform:uppercase;text-wrap:balance;margin:0;}
+.ch-sub{font-style:italic;color:var(--ink-dim);font-size:1.1rem;}
+.p{font-size:clamp(17px, .55vw + 13px, 20px);line-height:1.66;margin:0 0 1.15em;hyphens:auto;-webkit-hyphens:auto;
+  opacity:.38;transition:opacity 1.4s ease, filter 1.4s ease;text-shadow:0 1px 14px rgba(0,0,0,.55);}
+body.frost .p{text-shadow:none;}
+.p.seen{opacity:1;}
+.p.dlg{padding-left:0;}
+.p.onoma{font-family:var(--stencil);font-weight:700;text-transform:uppercase;letter-spacing:.14em;font-size:clamp(1.5rem,2.6vw,2.2rem);line-height:1.2;margin:1.4em 0;color:var(--ink);}
+.p.onoma.beat{animation:beat .42s ease-out 3;}
+@keyframes beat{0%{transform:translateX(0)}30%{transform:translateX(3px)}100%{transform:translateX(0)}}
+.p.whisper{font-style:italic;letter-spacing:.2em;color:var(--ink-dim);font-size:1.25rem;text-align:center;margin:2em 0;}
+.p.final{font-size:clamp(20px,1vw + 14px,24px);}
+.p .tr{display:inline-block;}
+.p .tr span{display:inline-block;animation:trem 2.8s ease-in-out infinite;}
+@keyframes trem{0%,100%{transform:translateY(0)}45%{transform:translateY(0)}50%{transform:translateY(-1.5px)}55%{transform:translateY(.8px)}60%{transform:translateY(0)}}
+.p.seq{display:none;}
+.p.seq.on{display:block;animation:rise 1.6s ease both;}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.lead{font-family:var(--mono);font-size:.72rem;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-dim);}
+.hide{display:none !important;}
+.dim-story #story{opacity:.12;transition:opacity 1.2s ease;}
+#story{transition:opacity 1.2s ease;}
+.dim-story #scrim{opacity:.15;}
+[hidden]{display:none !important;}
+
+/* ---------- mapa w prologu ---------- */
+.figmap{margin:2.2rem 0 2.6rem;}
+.figmap svg{width:100%;height:auto;display:block;overflow:visible;}
+.figmap figcaption{font-family:var(--mono);font-size:.72rem;color:var(--ink-dim);letter-spacing:.06em;margin-top:.6rem;line-height:1.5;}
+
+/* ---------- zadania służbowe ---------- */
+.gate{margin:2.6rem 0 3rem;border:1px solid var(--line);background:var(--panel);padding:1.3rem 1.3rem 1.2rem;position:relative;backdrop-filter:blur(3px);}
+.gate .lead{display:flex;justify-content:space-between;gap:1rem;margin-bottom:.9rem;}
+.gate .lead b{font-weight:500;color:var(--ink);}
+.gate .hint{font-family:var(--mono);font-size:.78rem;line-height:1.55;color:var(--ink-dim);margin:.8rem 0 0;}
+.gate.done{border-color:rgba(95,207,143,.35);}
+.gate.done .state{color:var(--signal);}
+.btn{font-family:var(--mono);font-size:.82rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);background:transparent;border:1px solid var(--ink-dim);padding:.8rem 1.1rem;cursor:pointer;transition:background .3s,color .3s,border-color .3s;}
+.btn:hover{background:var(--ink);color:var(--ground);}
+.btn:focus-visible,.gate [tabindex]:focus-visible,#dock button:focus-visible{outline:2px solid var(--gold);outline-offset:3px;}
+.btn[disabled]{opacity:.35;cursor:default;background:transparent;color:var(--ink);}
+
+/* nominacja */
+.card{background:#e6dfcc;color:#2a2622;padding:1.4rem 1.4rem 1.6rem;transform:rotate(-1.2deg);box-shadow:0 18px 40px rgba(0,0,0,.55);position:relative;font-family:var(--serif);max-width:26rem;}
+.card .hd{font-family:var(--mono);font-size:.66rem;letter-spacing:.2em;text-transform:uppercase;display:flex;justify-content:space-between;border-bottom:1px solid rgba(42,38,34,.35);padding-bottom:.5rem;margin-bottom:1rem;}
+.card h4{font-family:var(--stencil);font-size:1.9rem;letter-spacing:.12em;margin:.2rem 0 .6rem;font-weight:800;}
+.card p{margin:0 0 .6rem;line-height:1.5;font-size:1rem;}
+.card .sig{font-style:italic;font-size:.9rem;margin-top:1rem;display:flex;justify-content:space-between;}
+.stamp{position:absolute;right:1.2rem;bottom:1.4rem;border:3px solid rgba(172,38,30,.85);color:rgba(172,38,30,.85);font-family:var(--stencil);font-weight:800;letter-spacing:.14em;padding:.35rem .7rem;text-align:center;line-height:1.05;font-size:1.05rem;transform:rotate(-9deg) scale(2.2);opacity:0;pointer-events:none;mix-blend-mode:multiply;}
+.stamp small{display:block;font-family:var(--mono);font-size:.6rem;letter-spacing:.2em;font-weight:500;}
+.stamp.on{animation:stampin .38s cubic-bezier(.2,1.4,.4,1) forwards;}
+@keyframes stampin{0%{opacity:0;transform:rotate(-14deg) scale(2.4)}70%{opacity:1;transform:rotate(-9deg) scale(.96)}100%{opacity:1;transform:rotate(-9deg) scale(1)}}
+.gate-row{display:flex;flex-wrap:wrap;gap:1rem;align-items:center;margin-top:1.2rem;}
+
+/* szyna */
+.railbox svg{width:100%;height:auto;display:block;touch-action:none;user-select:none;-webkit-user-select:none;}
+.railpiece{cursor:grab;}
+.railpiece.drag{cursor:grabbing;}
+.joint{cursor:pointer;}
+
+/* latarnie */
+.lamps{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;margin-top:.4rem;}
+.lamp{appearance:none;background:transparent;border:1px solid var(--line);color:var(--ink);padding:.8rem .4rem .7rem;display:grid;justify-items:center;gap:.5rem;cursor:pointer;font-family:var(--mono);font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;transition:border-color .4s;}
+.lamp svg{width:42px;height:62px;}
+.lamp .glass{fill:#1a1c1b;transition:fill .5s;}
+.lamp .halo{opacity:0;transition:opacity .8s;}
+.lamp.lit{border-color:rgba(240,180,64,.45);}
+.lamp.lit .glass{fill:var(--c,#ffcf7a);}
+.lamp.lit .halo{opacity:1;}
+.clock{font-family:var(--mono);font-size:2rem;letter-spacing:.08em;}
+
+/* manewry */
+.instr{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;}
+.inst{border:1px solid var(--line);padding:.7rem .5rem .8rem;display:grid;justify-items:center;gap:.4rem;text-align:center;}
+.inst .nm{font-family:var(--mono);font-size:.64rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-dim);}
+.inst .st{font-family:var(--mono);font-size:.64rem;letter-spacing:.1em;color:var(--ink-faint);min-height:1.2em;}
+.inst.ok .st{color:var(--signal);}
+.inst svg{width:78px;height:96px;touch-action:none;user-select:none;-webkit-user-select:none;}
+.lever-h{cursor:grab;}
+.disc,.sema{cursor:pointer;}
+
+/* ---------- HUD ---------- */
+.hud{position:fixed;z-index:6;font-family:var(--mono);font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-dim);}
+#hud-tl{top:calc(14px + env(safe-area-inset-top,0px));left:16px;display:flex;gap:.6rem;align-items:center;}
+#hud-tl .mark{font-family:var(--stencil);font-weight:700;letter-spacing:.12em;color:var(--ink);font-size:.95rem;margin-right:.4rem;}
+.hbtn{font:inherit;letter-spacing:inherit;text-transform:inherit;color:var(--ink-dim);background:var(--panel);border:1px solid var(--line);padding:.42rem .6rem;cursor:pointer;}
+.hbtn:hover{color:var(--ink);border-color:var(--ink-dim);}
+#hud-map{top:calc(12px + env(safe-area-inset-top,0px));right:16px;width:178px;text-align:right;}
+#hud-map svg{width:100%;height:auto;display:block;overflow:visible;}
+#km{font-variant-numeric:tabular-nums;color:var(--ink);}
+#log{right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));width:min(19rem, 32vw);justify-items:end;text-align:right;display:grid;gap:.3rem;text-transform:none;letter-spacing:.04em;font-size:.7rem;line-height:1.35;}
+#log .e{justify-content:flex-end;opacity:0;transform:translateY(4px);animation:logIn .8s ease forwards;display:flex;gap:.6rem;}
+#log .e i{font-style:normal;color:var(--ink-faint);flex:none;min-width:4.6em;}
+#log .e.gone{animation:logOut 1.2s ease forwards;}
+#log .ttl{font-size:.6rem;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:.1rem;}
+@keyframes logIn{to{opacity:1;transform:none}}
+@keyframes logOut{to{opacity:0;transform:translateY(-4px)}}
+
+/* dock (przytrzymaj) */
+#dock{position:fixed;z-index:8;left:50%;bottom:calc(22px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;pointer-events:none;transition:opacity .6s ease, transform .6s ease;display:grid;justify-items:center;gap:.5rem;}
+#dock.on{opacity:1;transform:translate(-50%,0);pointer-events:auto;}
+#dock button{position:relative;display:flex;align-items:center;gap:.8rem;font-family:var(--mono);font-size:.78rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink);background:var(--panel);border:1px solid var(--ink-dim);padding:.55rem 1.1rem .55rem .55rem;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;backdrop-filter:blur(4px);}
+#dock button.big{font-family:var(--stencil);font-size:1.6rem;letter-spacing:.2em;padding:.7rem 1.8rem;border-color:var(--gold);color:var(--gold);}
+#dock .ring{width:38px;height:38px;flex:none;}
+#dock .ring circle{fill:none;stroke-width:2;}
+#dock .ring .bg{stroke:var(--line);}
+#dock .ring .fg{stroke:var(--gold);stroke-dasharray:100.5;stroke-dashoffset:100.5;transform:rotate(-90deg);transform-origin:50% 50%;}
+#dock .ring .ico{fill:var(--ink);}
+#dock .sub{font-family:var(--mono);font-size:.66rem;letter-spacing:.08em;color:var(--ink-dim);text-align:center;max-width:22rem;min-height:1em;text-shadow:0 1px 8px rgba(0,0,0,.8);}
+#dock.holding button{border-color:var(--gold);}
+
+/* ---------- wejście ---------- */
+#intro{position:fixed;inset:0;z-index:20;background:#070808;display:grid;place-items:center;padding:24px 16px;transition:opacity 2.4s ease;overflow:auto;}
+#intro.out{opacity:0;pointer-events:none;}
+.intro-in{width:min(40rem,100%);display:grid;gap:1.4rem;}
+.intro-in .lead{color:#8f8c81;}
+.intro-in h1{font-family:var(--serif);font-weight:400;font-size:clamp(3rem,9vw,6.4rem);line-height:.95;margin:0;letter-spacing:-.01em;color:#e2dccb;text-wrap:balance;}
+.intro-in h1 em{display:block;font-size:.34em;color:#8f8c81;letter-spacing:.02em;margin-top:.8rem;}
+.intro-in p{margin:0;color:#b9b3a4;font-size:1.12rem;line-height:1.6;max-width:32rem;}
+.intro-in .btn{color:#e2dccb;border-color:#8f8c81;justify-self:start;}
+.intro-in .btn:hover{background:#e2dccb;color:#070808;}
+.intro-in .row{display:flex;gap:1rem;flex-wrap:wrap;align-items:center;}
+.intro-in .quiet{background:none;border:0;color:#6d6b63;font-family:var(--mono);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;padding:.4rem 0;text-decoration:underline;text-underline-offset:4px;}
+.intro-rails{height:1px;background:linear-gradient(90deg,transparent,#3a3b37 20%,#3a3b37 80%,transparent);position:relative;margin:.4rem 0;}
+.intro-rails::after{content:"";position:absolute;left:0;right:0;top:6px;height:1px;background:inherit;}
+.intro-in .foot{font-family:var(--mono);font-size:.66rem;letter-spacing:.08em;color:#5f5e57;line-height:1.6;}
+
+/* ---------- koniec ---------- */
+#end{position:relative;z-index:2;width:min(var(--col),calc(100% - 32px));margin-left:clamp(16px,7vw,120px);padding-block:0 30vh;display:grid;gap:1.2rem;opacity:0;transition:opacity 3s ease;}
+#end.on{opacity:1;}
+#end .row{display:flex;gap:1rem;flex-wrap:wrap;}
+
+/* ---------- nota ---------- */
+dialog{background:#0f1211;color:#d8d2c2;border:1px solid rgba(216,210,194,.2);padding:0;width:min(44rem,calc(100% - 32px));max-height:86vh;}
+dialog::backdrop{background:rgba(0,0,0,.7);}
+.nota{padding:1.6rem 1.6rem 1.4rem;overflow:auto;max-height:86vh;}
+.nota h2{font-family:var(--stencil);font-weight:800;letter-spacing:.06em;text-transform:uppercase;font-size:2rem;margin:.2rem 0 1rem;}
+.nota h3{font-family:var(--mono);font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:#8f8c81;margin:1.6rem 0 .5rem;font-weight:500;}
+.nota p,.nota li{line-height:1.6;font-size:1.02rem;margin:0 0 .6rem;}
+.nota ul{padding-left:1.1rem;margin:0;}
+.nota .x{float:right;}
+
+@media (max-width: 760px){
+  #scrim{background:var(--scrim);opacity:.64;}
+  #story{margin-left:16px;padding-block:18vh 40vh;}
+  #hud-map{width:112px;}
+  #hud-tl .mark{display:none;}
+  #log{width:auto;max-width:calc(100% - 150px);left:16px;right:auto;justify-items:start;text-align:left;bottom:auto;top:calc(54px + env(safe-area-inset-top,0px));}
+  #log .e{justify-content:flex-start;background:var(--panel);padding:.3rem .5rem;}
+  #log .e:not(:last-child),#log .ttl{display:none;}
+  #log .e.old{animation:logOut 1.2s ease forwards;}
+  .instr{grid-template-columns:1fr 1fr 1fr;gap:.4rem;}
+  .inst svg{width:60px;height:78px;}
+  #end{margin-left:16px;}
+}
+@media (prefers-reduced-motion: reduce){
+  .p .tr span,.p.onoma.beat{animation:none;}
+  .p{transition:none;}
+}
+</style>
+
+</head>
+<body>
+
+<canvas id="scene" aria-hidden="true"></canvas>
+<div id="scrim"></div>
+
+<div id="intro" role="dialog" aria-labelledby="intro-title">
+  <div class="intro-in">
+    <div class="lead">Stanisław Grabiński · <i>Demon ruchu</i> · 1919</div>
+    <h1 id="intro-title">Głucha przestrzeń<em>(Ballada kolejowa)</em></h1>
+    <div class="intro-rails" aria-hidden="true"></div>
+    <p id="intro-p1">Między Orszawą a Byliczem leży dwanaście kilometrów toru, którym od roku nie przejechał żaden pociąg. Ktoś jednak musi go pilnować.</p>
+    <p id="intro-p2" style="font-size:1rem;color:#8f8c81">Najlepiej w słuchawkach, w ciemnym pokoju. Opowieść czyta się, przewijając. Czasem trzeba coś zrobić własną ręką, czasem tylko przytrzymać i słuchać.</p>
+    <div class="row">
+      <button class="btn" id="enter">Wejdź na tor</button>
+      <button class="quiet" id="enter-mute">bez dźwięku</button>
+    </div>
+    <div class="foot">Prototyp doświadczenia immersyjnego · dźwięk i obraz generowane na żywo w przeglądarce</div>
+  </div>
+</div>
+
+<div id="night"></div>
+<div id="topfade"></div>
+<div id="flash"></div>
+
+<div class="hud" id="hud-tl">
+  <span class="mark">Głucha przestrzeń</span>
+  <button class="hbtn" id="snd" aria-pressed="true">Dźwięk: wł.</button>
+  <button class="hbtn" id="nota-btn">Nota</button>
+</div>
+
+<div class="hud" id="hud-map" aria-label="Schemat pętlicy">
+  <svg viewBox="0 0 200 118" aria-hidden="true">
+    <text x="4" y="114" fill="currentColor" font-size="8" letter-spacing="1.2">ORSZAWA</text>
+    <text x="196" y="114" fill="currentColor" font-size="8" letter-spacing="1.2" text-anchor="end">BYLICZ</text>
+    <line x1="14" y1="98" x2="186" y2="98" stroke="currentColor" stroke-width="1.4" opacity=".75"/>
+    <line id="mm-train" x1="14" y1="98" x2="34" y2="98" stroke="#d8d2c2" stroke-width="2.2"/>
+    <path id="mm-arc" d="M14,98 C30,8 170,8 186,98" fill="none" stroke="#d8d2c2" stroke-width="1.6" stroke-dasharray="2.5 3"/>
+    <rect id="mm-booth" x="96.5" y="27" width="7" height="6" fill="none" stroke="#f0b440" stroke-width="1.2"/>
+    <circle id="mm-dot" r="3.2" fill="#f0b440" cx="14" cy="98"/>
+  </svg>
+  <div><span id="km">km 0,0</span> <span style="color:var(--ink-faint)">/ 12,3</span></div>
+</div>
+
+<div class="hud" id="log" aria-live="polite"></div>
+
+<div id="dock" aria-live="polite">
+  <button id="dock-btn" type="button">
+    <svg class="ring" viewBox="0 0 38 38" aria-hidden="true"><circle class="bg" cx="19" cy="19" r="16"/><circle class="fg" cx="19" cy="19" r="16"/><path class="ico" d="M19 11c-3.3 0-6 2.6-6 6 0 2.2 1.1 3.3 2 4.2.8.8 1.4 1.4 1.4 2.8 0 1.4 1 2.5 2.4 2.5 1.2 0 2.2-.8 2.4-2h-1.6c-.1.3-.4.5-.8.5-.5 0-.9-.4-.9-1 0-2-1-3-1.8-3.8-.8-.8-1.6-1.6-1.6-3.2 0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5h1.5c0-3.4-2.7-6-6-6z"/></svg>
+    <span id="dock-label">Przyłóż ucho do szyny</span>
+  </button>
+  <div class="sub" id="dock-sub">przytrzymaj · spacja</div>
+</div>
+
+<main id="story" aria-label="Głucha przestrzeń, tekst opowiadania"></main>
+
+<section id="end" aria-label="Koniec">
+  <div class="lead">Koniec · Stanisław Grabiński, <i>Głucha przestrzeń</i></div>
+  <div class="row">
+    <button class="btn" id="again">Wróć na tor</button>
+    <button class="btn" id="nota-btn2">Nota</button>
+  </div>
+</section>
+
+<dialog id="nota">
+  <div class="nota">
+    <button class="hbtn x" id="nota-close">Zamknij</button>
+    <div class="lead">Nota do prototypu</div>
+    <h2>Jak to działa</h2>
+    <p>„Głucha” znaczy tu dwie rzeczy naraz: przestrzeń bez dźwięku i ludzie, którzy nie słyszą. Wawera mówi to wprost: „To wy jesteście głusi”. Dlatego strona zaczyna się prawie w ciszy i uczy słuchania. Im wierniej czytelnik pełni służbę, tym więcej przestrzeń mu oddaje.</p>
+    <h3>Czytelnik na posterunku</h3>
+    <ul>
+      <li>Gesty z opowiadania są interfejsem: pieczęć nominacji, wstawienie brakującej szyny, zapalenie latarń o siódmej, manewry kolbą stawidła, tarczą i semaforem.</li>
+      <li>Nasłuch to przytrzymanie przycisku. Kamera schodzi do poziomu szyny, świat cichnie, a z pogłosu parowu wychodzą „wspominki”. W sierpniu szyny gwarzą, w październiku odpowiadają tylko: jeszcze nie.</li>
+      <li>W grudniową noc trzeba trzymać sygnał w górze tak długo, jak nadjeżdża pociąg. Puszczenie przycisku oddala go.</li>
+      <li>„Jazda!” wykrzykuje czytelnik. Rano strona jest już biała i milcząca.</li>
+    </ul>
+    <h3>Obraz</h3>
+    <p>Parów w perspektywie z jednym punktem zbiegu, z wylotem tunelu jako ogniskiem całej opowieści. Scena jest rysowana na żywo i zmienia się z porami roku: maj, sierpniowy zmierzch, październikowy deszcz, listopadowa wichura, grudniowy śnieg, mroźny poranek. Nocą tekst widać tylko w kręgu latarni, którą prowadzi kursor lub palec.</p>
+    <h3>Dźwięk</h3>
+    <p>Całość jest syntezowana w przeglądarce, bez nagrań: wiatr, deszcz, świerszcze, żaby, wrony, dzwony z Orszawy, stygnące szyny, szepty, dzwonek sygnalizatora, rytm kół, gwizd i hamulce. Pogłos parowu ma echo odbijane na przemian w lewo i w prawo, bo zbocza „podawały sobie na przemian niby piłki rozbudzone echa”.</p>
+    <h3>Mapa i pamięć</h3>
+    <p>Schemat w rogu pokazuje pętlicę (łuk) i nową linię (cięciwę). Postęp lektury to kilometr na starym torze. W finale łuk zostaje wymazany, a strona zapamiętuje, że przestrzeń zamilkła: następna wizyta zaczyna się od pustki.</p>
+    <h3>Tekst</h3>
+    <p>Stanisław Grabiński, <i>Głucha przestrzeń (Ballada kolejowa)</i>, z tomu <i>Demon ruchu</i> (1919). Tekst z edycji Wolnych Lektur, domena publiczna. Pełny, bez skrótów.</p>
+  </div>
+</dialog>
+
+<script>
+const PARAS=["Pomiędzy Orszawą a Byliczem zregulowano przestrzeń. Stało się to możliwym dzięki zasypaniu mokradeł nad Wierszą i przeprowadzeniu niwelacji pod tzw. „Upłazikiem”. Wskutek tego linia uległa znacznemu skróceniu, gdyż pociąg zamiast omijać bagnisty teren w wielkim, silnie na północ wygiętym łuku, szedł teraz po jego cięciwie, zmierzając do celu prosto jak strzała.", "Skrót okazał się ze wszech miar pożądanym. Ruch kolejowy zyskał znacznie na tempie, a okolica, dotychczas malaryczna z powodu bagiennych wyziewów, wkrótce przybrała charakter suchej, zdrowej równiny, która wnet pokryła się bujną zielonością.", "Dawną przestrzeń, okrężną, zwaną teraz „głuchą”, zamknięto i izolowano. Do rozebrania toru i usunięcia obiektów kolejowych zamierzała dyrekcja ruchu przystąpić dopiero po pewnym czasie. Nie było z czym się spieszyć; wiadoma rzecz: zburzyć łatwo, zbudować trudniej...", "Tymczasem w rok po oficjalnym zamknięciu starej linii zaszedł fakt dziwny i niespodziewany.", "Pewnego dnia zgłosił się u dyrektora odnośnego departamentu w Orszawie niejaki Szymon Wawera, wysłużony inwalida kolejowy i emerytowany konduktor, z prośbą, by mu oddano pod opiekę wyłączoną z ruchu „głuchą przestrzeń”. Gdy mu dyrektor przedstawił, że jest to zupełnie zbyteczne, bo pętlicę w najbliższych miesiącach rozbiorą, i że funkcja „budnika” w tych warunkach byłaby co najmniej iluzoryczną, jeśli już nie wprost śmieszną, oświadczył Wawera, że będzie pilnował starego toru całkiem bezinteresownie.", "— Bo proszę pana naczelnika — tłumaczył gorąco — w dzisiejszych ciężkich czasach to i na szyny ludzie się łakomią. A szkoda byłaby wielka dla kolei, panie naczelniku, wielka szkoda. Proszę samemu obliczyć: tyle dobrego kutego żelaza! Tor tam przeszło 12 km długi! Jest się czym obłowić. A ja dopilnuję wiernie jak pies, panie naczelniku. Nie dam uszczknąć ani jednego metra! Jakem stary konduktor Wawera! Centusia za to nie chcę, ani złamanego szeląga. Choćby mi pan dyrektor sam pchał do ręki, nie wezmę nic. Ja tak tylko z miłości wielkiej do zawodu i dla honoru chcę być budnikiem na „głuchej przestrzeni”.", "Dyrektor ustąpił.", "— Ha, jeśli już tak koniecznie, i to bezinteresownie, pilnuj pan sobie tej linii do czasu. A zatem — dodał z uśmiechem lekkiej ironii, uderzając go po ramieniu — mianuję pana od dzisiaj dróżnikiem „głuchej przestrzeni”.", "Wawera ze łzami w oczach uścisnął dłoń zwierzchnika i wyszedł z biura szczęśliwy jak nigdy.", "Nazajutrz objął „służbę”. Zabrał ze sobą z Orszawy parę gratów — mebelków, pościel, trochę książek i naczyń kuchennych, i spakowawszy to chude gospodarstwo na ręczny wózek, sprowadził się na nowe mieszkanie, którym miała odtąd być budka byłego dróżnika wyłączonej z ruchu strefy. Był to budynek niewielki, nadniszczony już przez całoroczne zaniedbanie, lecz w dziwnie pięknym otoczeniu.", "Wciśnięta we wnękę parowu, parę metrów nad poziomem toru, budka wyglądała z daleka pod swym daszkiem z czerwonego łupku jak zaczarowana chatka z bajki. Mały lasek jodłowy wyrosły półkolem na szczycie jaru ujmował ją w opiekuńcze ramiona i chronił od wichrów północy. W wybite okna zaglądały złote głowy słoneczników, przemycał się szerokolistny łopian — w rynnach powyginanych fantastycznie lęgły się pisklęta jaskółek. Przed domem w ogródku zarosłym zielskiem na głucho oddawała się wiatrom na wolę samotna topola...", "Wawera u wstępu objął miłosnym spojrzeniem nową sadybę i żwawo zabrał się do porządkowania i naprawek. A potrzebne już były bardzo, bo jego poprzednik opuścił posterunek jeszcze przed rokiem, po zamknięciu przestrzeni, i budka zdana na łaskę losu ucierpiała ogromnie od niepogody i ludzkiej chciwości. Lecz Wawera nie stracił ducha i piorunem rzucił się do roboty.", "Powstawiał wybite lub pokradzione szyby, załatał dziurę w dachu, naprawił wywalone z zawiasów drzwi. Po tych najkonieczniejszych reparacjach przyszła kolej na dalsze: rekonstrukcję rozdrapanej prawie do cna podłogi i ustawienie brakujących przęseł w ogrodzeniu. Zabrało mu to parę dni czasu, bo musiał wszystko robić sam, ale humoru nie tracił, lecz owszem pogwizdywał wesoło przy pracy jak szczygieł. Gdzieś u schyłku tygodnia, gdy już robota była na ukończeniu, przyplątał się doń jakiś bezpański pies i zamieszkał pustą budę koło drewutni za domem. Wawera chętnie przygarnął go do siebie, uważając zjawienie się zwierzęcia za dobrą wróżbę na przyszłość.", "Pierwszą niedzielę na nowej placówce spędził Wawera na modlitwie i rozmyślaniach. Wyciągnąwszy się po południu na zboczu wąwozu opodal domu na trawie, wlepił oczy w majowy błękit nieba i zapadł w długą zadumę, z której obudziły go dopiero głosy dzwonów wieczornych płynące z Orszawy...", "Nazajutrz od rana rozpoczął właściwą służbę od przeglądu powierzonej sobie przestrzeni.", "Pętlica była dość długa, bo przeszło 12 km, i niemal od początku do końca szła głębokim, wąskim parowem, którego ściany tworzyły rozstęp szerokości podwójnej wstęgi torów. Budka dróżnika wznosiła się mniej więcej w połowie „głuchej przestrzeni”, w miejscu gdzie łuk jej krzywizny wyginał się najsilniej ku północy.", "Rewia zajęła Wawerze przeszło pięć godzin, bo prawa noga, będąca kikutem poniżej kolana, przeszkadzała mu znacznie w chodzeniu. W końcu jednak zbadał dokładnie linię w jedną i drugą stronę i zadowolony z rezultatu wrócił do budki na posiłek.", "Ostatecznie przestrzeń nie przedstawiała się najgorzej. W jednym tylko miejscu brakowało kilku metrów szyny, lecz to można było jakoś nadsztukować.", "Nie święci garnki lepią — pomyślał, krając chleb i zapijając go jakąś imitacją barszczu. — Ludzie wstawiają sobie zęby, czemuż bym ja nie potrafił wstawić kilkumetrowego kawałka szyny?", "I wstawił. Gdzieś pod nasypem kolejowym, pod jakimś kamiennym mostkiem wyszperał parę zardzewiałych już żelaznych sztab, oczyścił, przekuł w ogniu przy nitach, przystosował do reszty i załatał szczerbę w torze do niepoznaki. Równie gładko poszło z naprawą starej zwrotnicy i z wybitym okiem dwu latarń „stacyjnych” opodal budki. Wkrótce stawidło funkcjonowało jak za dawnych dobrych czasów, a w nocy, począwszy od godziny siódmej, rozbłyskiwały latarnie miłym, acz nikłym trochę światłem.", "Wawera dumny był ze swego dzieła i rozmiłowanymi oczyma wodził po swojej „strażnicy”, po torze czyściutko utrzymanym i po lśniących relsach. Nie miał nic do zarzucenia swojej przestrzeni. Wszystko tu było jak i gdzie indziej, na czynnych liniach. Był bo i tor podwójny, i krótki tunel powyżej budki, a nawet blok, prawdziwy, w całym tego słowa znaczeniu blok z dźwigniami do przerzutów. Istnienie tego budyneczku o parę metrów od sadyby dróżnika pasowało właściwie placówkę na „przystanek”. Jakoż była tu rzeczywiście przed laty mała stacyjka, przy której budnik spełniał równocześnie funkcje naczelnika. Podobno nawet jeszcze na rok przed wyłączeniem pętlicy zatrzymywały się tu czasem pociągi towarowe na małą chwilę.", "Wiadomość ta podniosła ogromnie w oczach Wawery znaczenie jego posterunku i doniosłość związanych z nim zadań. Odtąd zaczął traktować swą budkę jako przystanek i postanowił uczynić wszystko, ażeby utrzymać go na wysokości przeznaczenia. Toteż otoczył jak najtroskliwsza opieką blok i zawarte w nim obiekty, których strzegł jak oka w głowie. Chcąc niejako umotywować wobec siebie i drugich istnienie tego budynku i przywrócić mu dawną rację bytu, powielił tor przed blokiem o jedno odgałęzienie szyn, które niewątpliwie niegdyś musiało tu istnieć, lecz później jako zbędne zostało usunięte.", "Ponieważ to ostatnie zadanie przechodziło już jego siły i zdolności techniczne, uciekł się do pomocy jednego z kolejowych kowali z ogrzewalni stacyjnej w Byliczu, niejakiego Luśni, i pozyskawszy go paczką przedniego tytoniu, namówił do przywrócenia jego „stacji” jej dawnego wyglądu. Kowal przeprowadził restytucję odgałęzienia wedle wskazówek dróżnika i odtąd został jego najserdeczniejszym przyjacielem.", "W godzinach wieczornych, wolnych od pracy, przychodził Luśnia w odwiedziny do budnika i usiadłszy razem na belce pod blokiem lub na progu stacji, gawędzili pod nieszpór, ćmiąc fajki.", "Wtedy to wśród przyjacielskiej rozmowy, przy wtórze zasypiających koników polnych, rechocie bagiennych żab, przyszło do wzajemnych zwierzeń.", "Powoli wyszło na jaw, że Szymon Wawera nie zawsze był w życiu „sam jako ten palec”, że miał niegdyś młodą i piękną żonę i parę dziatek o główkach jasnych jak len, jedwabistych. Hej, minęło szczęście, minęło niewrotne! Żonę uwiódł spanoszony bogacz, dzieci śmierć zabrała. Odtąd nikt go nie oczekiwał w pustym, zimnym domu, gdy powracał z tury... Potem przyszedł karambol pod Wolą. Stracił wtedy nogę i służbę; musiał pójść na pensję. A miał jeszcze ochotę do pracy, o, i jaką ochotę!... Lecz trudno — nie można było inaczej. To przeklęte kalectwo!", "A zawsze go coś ciągnęło do kolei. Nie mógł się z nią rozstać w żaden sposób. Przez parę lat po spensjonowaniu pracował jako posługacz przy magazynach na dworcu towarowym, staczając beczki i bale po pomostach, potem, gdy noga zaczęła odmawiać posłuszeństwa, zarabiał z dnia na dzień w ogrzewalni przy dworcu w Zbąszynie jako pomocnik ślusarski. A zawsze przy kolei, zawsze w pobliżu ukochanych wagonów, maszyn i przestrzeni. Dalekie to jeszcze od konduktorstwa, dalekie jak niebo od ziemi, ale przecież — przynajmniej się człowiek ocierał o kolej.", "O, bo nie masz to jak konduktorska dola! Jedzie sobie człowiek tak w przestrzeń, jedzie hen, daleko przed siebie, milami jedzie, stajami... Świat mu się kręci, w dal ścieli, migają miasta w przelocie, mijają pola, gościńce... Konduktor tak jedzie, panowie, konduktor — człek-tułacz wieczysty!...", "Tak mijały lata, płynął czas niepowrotną falą... Aż pół roku temu zasłyszawszy przypadkiem w rozmowie coś o „głuchej przestrzeni” między Orszawą a Byliczem porzucił ogrzewalnię i przeniósł się w te strony, by czuwać nad opuszczoną linią.", "I oto teraz został budnikiem, co więcej, kierownikiem przystanku. Ludzie się podobno śmieją z niego, że to „głuchej” pilnuje przestrzeni i „przed wiatrem broni”. Niech się tam śmieją zdrowi. On swoje wie także. A rozdrapywać więcej toru nie pozwoli i porządek utrzyma. I oto znów służy kolei, i wrócił do niej jak syn marnotrawny w dom rodzica po latach. Dach nad głową ma, stację i przestrzeń ma, dobra kolejowego dogląda — czegóż mu więcej potrzeba?...", "Słuchał Luśnia tych zwierzeń z uśmiechem na ustach, od czasu do czasu przytakując głową. A gdy przyjaciel na chwilę zamilkł i wpatrzył się zamyślony gdzieś w perspektywę toru, wyciągnął lulkę z zębów i zapytał:", "— To ty, Wawera, przystałeś tu na budnika tak niby tego, jak by to powiedzieć, niby z takiej tęskności wielkiej do kolei, hę?", "Wawera oderwał oczy od szyn:", "— A niby tak, kochany kowalu, a niby tak.", "— Ale bo widzisz, Szymek, właściwie tak Bogiem a prawdą — ty siebie samego tumanisz. Tyś tu właściwie niepotrzebny. Przecie to głucha przestrzeń i pociągi tędy od roku nie chodzą. Nie ma czego pilnować. Tego tam trochę żelaziwa w szynach? A co tam komu po tym? A zresztą choćby i ukradli? Nie taka znów wielka szkoda dla kolei. To tylko zabawka i tyle.", "Wawerze jakby kto nóż utopił w serce. Spochmurniał, zaciął wargi i poderwał się z miejsca:", "— Kiedy tak, to idźże sobie precz stąd, do licha! No, słyszałeś?! Won stąd, mówię, pókim dobry! Kiedyś taki mądry jak inni, to idź sobie pomiędzy nich i śmiej się ze mnie wraz z nimi. Ale dobrze mi tak, staremu durniowi! Po co było otwierać serce pierwszemu z brzegu? Oto masz i nagrodę. Napluło ci bydlę w twarz i splugawiło ci duszę. Won stąd, powiadam, bo mnie popamiętasz!", "Luśnia zmieszał się, poczerwieniał, stropił się ogromnie. Głosem urywanym, pełnym skruchy i żalu zaczął się usprawiedliwiać i przepraszać.", "— No, no, stary, nie gniewaj się, nie sierdź tak okrutnie. Ja, widzisz, chciałem co innego powiedzieć. Tylko nie wiedziałem jak. Zwyczajnie człek prosty jestem, kowal. Ty — co innego: konduktor; wieleś świata zwiedził, książki czytasz. Tylko, widzisz, nie mogłem sobie jakoś tego wykalkulować, po co ty właściwie zaszyłeś się tutaj na stare lata. Ale teraz to widzę, niby tak w sercu czuję, dlaczego. Tyś inny człowiek jak inni.", "Wawera spojrzał nań z ukosa, trochę z niedowierzaniem, lecz znać już przejednany:", "— No tak, to co innego. Jeśli sam przyznajesz, żeś głupi i nie rozumiesz, to ci ten raz jeszcze mogę wybaczyć. Bo, posłuchaj, Luśnia — dodał, zniżając tajemniczo głos — jest ci tu i inna przyczyna, co mnie tu więzi i trzyma. A że jest — ja to czuję najlepiej tu, głęboko w piersi — tylko jej nazwać jeszcze nie umiem po imieniu, tylko uchwycić jej jeszcze nie potrafię w cęgi słów. Ale ona jest, owa dziwna przyczyna — jest, jest na pewno.", "Luśnia patrzył na przyjaciela rozszerzonymi od ciekawości oczyma:", "— Masz teraz na myśli nie jeno ową tęskność do kolei?", "— Nie, nie. To jest coś innego. Coś, co u mnie z ową tęsknotą się łączy, ale też istnieje i beze mnie, samo dla siebie.", "— Co to takiego, Wawera?", "— Sza! To tajemnica! Tajemnica „głuchej przestrzeni”.", "Zamilkli obaj zdjęci nagle nieokreślonym lękiem, zatapiając spojrzenia w mroczniejącą już szyję parowu. Wśród bezdennej ciszy sierpniowego wieczora nadpłynęły nagle od toru ciche, choć wyraźne szmery i szelesty. Jakieś seplenienia stłumione, jakieś poszepty lękliwe, poszczęki...", "— Słyszysz, Luśnia? — przerwał milczenie budnik. — Szyny gwarzą...", "— Zwyczajnie latem pod wieczór kurczą się od chłodu i przeto szczękają.", "— Szyny gwarzą — powtórzył Wawera, puszczając mimo uszu objaśnienie kowala. — Gawędzą sobie wieczorem po znojach dnia.", "— Szyny gadają — powtórzył jak echo Luśnia.", "— Tak, tak — mówił dróżnik dziwnie rozmarzony. — Czy myślisz, że one nie żyją jak my, ludzie, zwierzęta lub drzewa?", "Kowal spojrzał zaskoczony pytaniem.", "— Żyją, Luśnia, żyją, jeno swoim własnym, odmiennym od innych stworzeń życiem.", "To stanowczo już przekraczało zakres pojęć kowala. Popatrzył poczciwiec na towarzysza jak na wariata, pokręcił głową i splunąwszy od niechcenia w bok, odsunął się trochę na prawo.", "— A tor, myślisz, nie żyje, co? — następował nań rozgrzany biernym oporem Wawera. — A ten parów, ta stacja z blokiem, a ta cała przestrzeń, hę?", "— Głucha przestrzeń — wtrącił półgłosem Luśnia.", "— Głucha, powiadasz? Głucha i ciągle głucha! To wy jesteście głusi, wy, głupi, tępi ludzie, którzy słyszeć nie chcecie głosu Boga!", "Kowal struchlał:", "— Nic już nie wiem — bełkotał patrząc półprzytomny na towarzysza. — Nic nie rozumiem. Ale w Boga — to wierzę.", "Dróżnik ze wzrokiem natchnionym, uśmiechnięty, promienny wskazał ręką przestrzeń nurzającą się już w mrokach wieczornych:", "— Wszystko to żyje i wspomina.", "— Wspomina? — zagadnął żywo Luśnia. — A co wspomina?", "— To, co minęło. To, co tu było przed laty. Tak jak my, ludzie, wspominamy przeszłość — dodał po chwili z głębokim smutkiem w głosie.", "— To niby ta twoja przestrzeń wspomina swoją dawność?", "— Tak, Luśnia, tak — nareszcie mnie zrozumiałeś. Wspomina swoją dawność.", "— Niby owe stare, dobre czasy...", "— Tak, tak — gdy tu jeszcze panował ruch, gdy pociągi przelatywały jak błyskawice, dudniły głucho koła wozów, przepruwały przestrzeń gwizdy lokomotyw.", "— To wspomina twoja przestrzeń.", "— O tym śni ta moja przestrzeń, śni bez przerwy za dnia w słońcu i w długie, czarne, ślepe noce...", "— A ty, Wawera, a ty?", "— A ja wraz z nią niby ta bratnia dusza.", "— Śnicie oboje, wspominacie?", "— Śnimy w utęsknieniu wielkim i czekamy.", "— Na co? Czego tu wyglądacie?", "— Spełnienia tego, o czym śnimy.", "— Daremne czekanie: dawność nie wraca.", "— Kto ta wie, druhu stary, kto ta wie? Po to ja tu jestem, by ją wskrzesić.", "Powstał z belki i podając kowalowi rękę na pożegnanie, dodał po chwili milczenia:", "— Czy myślisz, że wspominanie — to nic, to tylko takie sobie puste słowo?", "Zapuścił bystre spojrzenie w dół, na dno parowu, musnął nim nasyp, tory i zatrzymał się na zboczach wąwozu:", "— Tu wszędzie żyją te wspominki: wałęsają się dla oka ludzkiego niewidoczne pomiędzy ścianami tego jaru, tłuką po tych szynach, włóczą hen, po całej przestrzeni. Tylko trzeba umieć patrzeć i słuchać.", "— Wspominki dawnych lat?", "— Wspominki — ślady niezatarte. Bo pomyśl, Luśnia, pomyśl tylko, czy to możliwe, by po tym wszystkim nie zostało nic!", "— Niby po czym?", "— Pomyśl tylko! Tyle lat, tyle dziesiątków lat przejeżdżały tą gardzielą pociągi, napełniając ją łoskotem kół, grzechotaniem relsów, tyle lat zbocza tego parowu podawały sobie na przemian niby piłki rozbudzone echa. Dzień w dzień, noc w noc rodziły się i marły w tej wąskiej, ciasnej szyi wiry powietrza, wieszały się po szkarpach łachmany dymów, tuliły mgliste ich smoczki do nasypu, kryły pod sklepem tunelu...", "— Co chciałeś rzec, Wawera?", "— Chciałem rzec jeno, że wspomnienia nie giną. Dobranoc ci, Luśnia, dobranoc!", "I tak się w ten wieczór rozstali...", "Tymczasem minęło lato, zaczęła się jesień. Dróżnik wciąż wiernie stróżował na swojej przestrzeni. Czujny jak żuraw nie przeoczył najmniejszej usterki na linii. Jeśli gdzieś przypadkiem obsunęła się nawierzchnia, zaraz podsypywał świeżego szutru i zrównywał z poziomem. Gdy w którąś noc październikową szalona ulewa podmuliła tor, wyżerając w nasypie znaczną wyrwę, nazajutrz budnik pracował przez cały dzień bez wytchnienia, póki szkody nie usunął. Umocnił w kilku punktach pętlicy wychwierutane podkłady, gdzie indziej zastąpił stare już, stoczone przez czerwy progi nowymi. Zielska i trawy na torze nie znosił: gdziekolwiek się rzuciło pomiędzy szyny, plewił niemiłosiernie.", "Toteż po upływie siedmiu miesięcy jego „urzędowania” wyglądały przestrzeń i przystanek wzorowo. W dal mknęły wstęgi relsów po nawierzchni posypanej żwirem czyściutkim i miałkim jak piasek, z lekkim chrzęstem przerzucały się naoliwione starannie dźwignie blokowe, wykonywało stawidło swe zwroty gładko i sprawnie jak rumak w tresurze maneżu. Dwa razy na dzień i raz w ciągu nocy odbywał Wawera tzw. „ćwiczenia” i „manewry”, które polegały na szeregu czynności i ruchów wykonywanych zwykle przez dróżników w chwili przejazdu pociągów przez ich placówki. Krokiem sprężystym, krokiem starego weterana wychodził budnik przed stację, brał do ręki sygnał, szeroką, czerwoną lub zieloną tarczę na białym polu, i stawał wyprostowany jak struna między zwrotnicą a budką. Kiedy indziej puszczał w ruch kolbę stawidła lub żelazne dźwignie na bloku i przerzucał szyny na torze. Wieczorami zapalał zielony sygnał za szybką zwrotnicy i drugi, podobny lub biały, na semaforze daleko przed przystankiem, opodal tunelu. Czasami na „nocny alarm” zmieniał światła sygnałów, które wtedy z daleka już ostrzegały barwą rubinu...", "A jednak mimo wszystko smutno było na przystanku. Mimo pozorów ruchu i sprawności budnika wiało od przestrzeni pustką jakąś i martwotą. Bezwiednie musiał to odczuwać i Wawera, bo gdy na chwilę oderwał się od pracy i wzrokiem błądził po szynach, z oczu wyglądała mu tęsknota i jakaś głęboka zaduma. Dlatego też po krótkim spoczynku tym żarliwiej brał się do pracy.", "Powoli, z biegiem miesięcy, wytworzył się między nim a przestrzenią nieuchwytny, choć nader zażyły związek. Wawera stał się z czasem jakby ucieleśnioną w kształcie człowieczym jej świadomością. Obcując ze swą strefą, niemal bez przerwy wchłonął wszystkie drzemiące tu tajemnie ślady przeszłości, a wessawszy w siebie, oddawał z powrotem wzmocnione tęsknotą, pulsujące żywą, gorącą krwią kochającego serca.", "— Poczekaj, siostrzyczko — szeptał nieraz, topiąc pijane zadumą oczy w siną dal przestrzeni — poczekaj jeszcze trochę, gołąbko! Doczekamy się w końcu, doczekamy.", "I przypadał do toru, przykładał ucho do ziemi i słuchał, słuchał z zapartym tchem. Po chwili na twarzy jego żółtej, pomarszczonej rozlewał się przykry wyraz rozczarowania, a z ust zwiędłych, zwiotczałych wypływało słowo zniechęcenia:", "— Jeszcze nie... Jeszcze za wcześnie...", "Nieraz wieczorami pod zorzę zachodu wlepiał godzinami całymi utęsknione oczy w czerniejącą z dala czeluść tunelu i czekał na coś, czekał bez końca...", "A tymczasem przyszły złe wieści z miasta. Pewnego dnia przyniósł Luśnia fatalną wiadomość, że dyrekcja ruchu w Orszawie zamierza najpóźniej z wiosną przystąpić do rozebrania przestrzeni. Wawera zgryzł się tym okrutnie i przechorował się ciężko. Po upływie tygodnia dźwignął się wreszcie z łóżka, lecz okropnie zmieniony. Małomowny z natury, teraz zamknął się w sobie zupełnie i absolutnie z nikim nie chciał rozmawiać. Nawet Luśni zabronił wstępu do siebie i z daleka zoczywszy nadchodzącego, zawracał go z drogi gestem ręki. Sposępniał, sponurzał i w oczach miał jakieś dzikie, niedobre światła...", "Aż dnia jednego, pod zmierzch, w burzliwy, listopadowy odwieczerz, podczas „manewrów” ze zwrotnicą nagle drgnął.", "— Przysłyszało mi się czy co? — mruknął wypuszczając z rąk kolbę przyrządu.", "Naraz pojaśniało mu w oczach. Strumień nadludzkiej radości przepłynął serce i wstrząsnął nim całym do posad. Wśród wycia jesiennego wichru, wśród świstu zawieruchy po raz pierwszy usłyszał...", "To już nie było złudzenie, o nie! Stamtąd nadpłynęło, stamtąd, od tunelu, najwyraźniej w świecie! To było to, tym razem niewątpliwie to!... O! Znowu! Trochę bliżej... Słodkie, kochane dudnienie! Drogi, nieoceniony łoskot, cudny, rytmiczny łoskot!...", "— Ta, ta, ta!... Ta, ta, ta!...", "To on! To on! Nie ulegało już wątpliwości!", "I wybiegł na spotkanie. Wiatr zerwał mu czapkę, zdarł płaszcz z ramion, targnął nim z pasją, nielitościwie... Nie zważał. Z rozwianym włosem, śnieżnobiałym włosem, z wyciągniętymi przed się entuzjastycznie rękoma słuchał dziwnego odgłosu jak najcudniejszej muzyki...", "— Ta, ta, ta... Ta, ta, ta... Ta, ta, ta... Ta, ta, ta...", "Lecz po chwili umilkło; i znów gwizdał tylko wiatr w wściekłych przegonach, kwiliły wrony pod ołowianym niebem...", "Ze zwieszoną głową powrócił dróżnik do swej budki...", "Lecz odtąd, od pamiętnego wieczora, nadzieja jasna rozkwitła mu w duszy i dościgała w spełnienie. Bo oto z dniem każdym słyszał coraz wyraźniej, coraz bliżej, coraz dobitniej. Po chwili milkło wprawdzie, głuchło gdzieś, rozwiewało się, lecz nazajutrz, o zmroku, w tę dziwną godzinę przesiłu dnia z nocą znów powracało mocniej już, głośniej, prawie namacalnie...", "Aż przyszła godzina ziszczenia.", "W jakąś noc grudniową, noc śniegiem zawianą, gdy znużony czuwaniem schylił siwą głowę głęboko ku piersi, zabrzmiał sygnał...", "Wawera zadrżał i obudził się:", "— Co to?!", "— Bim-bam... — zabrzmiało powtórnie. — Bim-bam...", "Sygnalizator grał. Po raz pierwszy od czasu objęcia służby usłyszał budnik kucie młotków...", "Pokraśniał cały, trzęsącymi się rękoma włożył czapkę, zarzucił szynel na ramiona i porwawszy latarkę, wybiegł przed budkę.", "— Bim-bam... — grało na słupie.", "— Idę już, idę — szepnął, słaniając się na nogach ze wzruszenia.", "Całą siłą woli opanował się, sprężył w służbowej postawie i podniósłszy wysoko sygnał świetlny do góry, czekał.", "— Ta, ta, ta... Ta, ta, ta... — dudniało na przestrzeni.", "— Trach, trach, trach... Trach, trach, trach... — gruchotały szyny.", "Dróżnik zatopił głodne spojrzenie w gardziel tunelu...", "— Ta, ta, ta!... Ta, ta, ta!...", "Nareszcie zobaczył. W wylocie czeluści zaświeciła para oczu, para olbrzymich, złotożółtych ślepiów i rosła, rosła, zbliżała się...", "Budnikowi lotem błyskawicy przeszła myśl przez głowę:", "— Przejedzie czy stanie?", "W tej chwili rozległ się zgrzyt gwałtownie zahamowanych kół i pociąg zatrzymał się przed przystankiem. Wawera nie drgnął, nie ruszył się z miejsca. Patrzył...", "Z wozu służbowego wysiadł kierownik ruchu i zmierzał w stronę dróżnika. Ze stopni wagonów zeskoczyło kilku konduktorów, jakiś kontrolor w służbie i podeszli ku niemu.", "— Dobry wieczór, Wawera! — pozdrowił wyciągając przyjaźnie rękę kierownik. — Czekałeś długo na nas, mój stary, co? No i nareszcie doczekałeś się.", "Wawera ściskał podaną dłoń! Łzy słodkie, łzy szczęścia dławiły słowa:", "— Wedle rozkazu, panie kierowniku, na posterunku.", "— Dobry wieczór, kolego! — witali go konduktorzy. — Witaj nam, stary druhu!", "I otoczyli go kołem. Ktoś zabrał mu sygnał i przypiął latarkę do piersi, ktoś inny wcisnął „klucz” konduktorski do ręki.", "— No, panowie — zabrzmiał donośny głos kierownika. — Komu w drogę, temu czas! Wawera, jedziesz naturalnie z nami?", "— Po ciebieśmy tu przyjechali — zagrzmiał zgodny chór kolegów. — Dość ci już chyba dróżnikowania?", "W piersi Wawery łkało coś ze szczęścia bez miary. Spojrzał raz jeszcze przez mgłę łez na przystanek, na domek swój śniegiem zasuty, na topolę samotną w ogródku i ruszył ku wozom:", "— Ja z wami, koledzy — ja z wami na śmierć i na życie!", "I wszedłszy na stopień wagonu jak przed laty, podniósł latarkę w stronę maszyny i krzyknął gromkim głosem:", "— Jazda!", "Pociąg ruszył z przeciągłym gwizdem i potoczył się w przestrzeń...", "Nazajutrz, w mroźny, grudniowy poranek, zastał Luśnia dróżnika przed budką w postaci służbowej z wyciągniętą w górę ręką i z zagasłą latarką w skostniałych palcach.", "— Wawera, co tobie? — zagadnął, wpatrując się bystro w twarz przyjaciela z zastygłym na ustach uśmiechem. I dotknął jego ramienia. Wtedy budnik sztywny jak kłoda zwalił mu się pod nogi.", "— Zamarzł! — szepnął kowal biorąc zwłoki w ramiona — zamarzł na śmierć na placówce.", "I złożył go ostrożnie w budce na tapczanie...", "Wieści o zamierzonym rozbiorze przestrzeni okazały się przedwczesne; przetrwała jeszcze jedną wiosnę i lato. Lecz mówiono w okolicy, że od śmierci Wawery pętlica jakby ożyła. Zwłaszcza pod wieczór wąwóz rozbrzmiewał echem dziwnych odgłosów. Dudniły jakieś pociągi, szczękały rozpętane koła, oddychała ciężko uznojona maszyna. Skądś z przestrzeni nadpływały na skrzydłach wiatru jakieś sygnały, rozlegały się przeciągłą skargą gwizdy świstawek, grały pobudkę odjazdu niewidzialne trąbki...", "Ludzie omijali chętnie tę stronę, z lękiem obchodząc ją kołem. Nawet ptactwo spłoszone niezwykłym łoskotem porzuciło dziwny parów i przeniosło się w inne, gościnniejsze strony.", "Dopiero gdy pod jesień następnego roku usunięto szyny i rozebrano budkę dróżnika, wszystko ucichło i „głucha przestrzeń” zamilkła na zawsze."];
+// ================= narzędzia =================
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const lerp=(a,b,t)=>a+(b-a)*t;
+const hex=h=>{h=h.replace('#','');return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]};
+const rgba=(c,a=1)=>`rgba(${c[0]|0},${c[1]|0},${c[2]|0},${a})`;
+const mix=(a,b,t)=>[lerp(a[0],b[0],t),lerp(a[1],b[1],t),lerp(a[2],b[2],t)];
+const smooth=t=>{t=clamp(t,0,1);return t*t*(3-2*t)};
+function rng(seed){let s=seed>>>0;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296}}
+const REDUCED = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// ================= pory i nastroje sceny =================
+const COLOR_KEYS=['skyT','skyB','fog','wall','ground'];
+const BASE={skyT:'#2a2f33',skyB:'#7d8580',fog:'#6f7773',wall:'#4b4d45',ground:'#3d3b35',
+  amb:.6,fogAmt:.5,green:.4,snow:0,rain:0,snowfall:0,wind:.25,leaves:0,dark:0,win:0,lampsOn:0,
+  crickets:0,frogs:0,birds:0,railtalk:0,crows:0,ghost:0,walk:0,figure:0,landmarks:1,tone:.5,swallows:0};
+const PRESETS={
+  prolog:{skyT:'#1d2327',skyB:'#687170',fog:'#5a6361',wall:'#3c403b',ground:'#33332e',amb:.55,fogAmt:.9,green:.3,wind:.3,landmarks:.55},
+  maj:{skyT:'#5a7d97',skyB:'#d6d8c2',fog:'#c1c4b0',wall:'#5d5f47',ground:'#57534a',amb:1,fogAmt:.35,green:1,wind:.15,birds:1,swallows:1},
+  rewia:{skyT:'#6886a0',skyB:'#dbdbc5',fog:'#c6c6b2',wall:'#616149',ground:'#5a564b',amb:1,fogAmt:.45,green:1,wind:.2,birds:.6,walk:1,landmarks:0},
+  przystanek:{skyT:'#29314e',skyB:'#d38956',fog:'#86675a',wall:'#4b4437',ground:'#433c33',amb:.6,fogAmt:.4,green:.95,wind:.12,frogs:.35,birds:.15,lampsOn:1,win:.5},
+  sierpien:{skyT:'#101726',skyB:'#6c4e47',fog:'#3d3434',wall:'#39342f',ground:'#2f2a26',amb:.34,fogAmt:.45,green:.9,wind:.08,crickets:1,frogs:.8,lampsOn:1,win:1,tone:.4},
+  sierpien2:{skyT:'#0b111e',skyB:'#3b3140',fog:'#29252f',wall:'#2d2a2a',ground:'#26221f',amb:.22,fogAmt:.5,green:.9,wind:.1,crickets:.9,frogs:.6,lampsOn:1,win:1,railtalk:.6},
+  jesien:{skyT:'#4a5054',skyB:'#8d9088',fog:'#7b7e78',wall:'#4c493e',ground:'#3f3b33',amb:.62,fogAmt:.55,green:.35,rain:.65,wind:.45,leaves:.6,lampsOn:.5,win:.3},
+  jesien2:{skyT:'#252930',skyB:'#795942',fog:'#49443f',wall:'#38342d',ground:'#2f2b26',amb:.36,fogAmt:.5,green:.25,rain:.15,wind:.35,leaves:.4,lampsOn:1,win:.6},
+  listopad:{skyT:'#14171b',skyB:'#494742',fog:'#393835',wall:'#2f2d29',ground:'#292724',amb:.3,fogAmt:.45,green:.08,rain:.25,wind:1,leaves:.9,crows:1,lampsOn:1,win:.4},
+  grudzien:{skyT:'#04060a',skyB:'#131824',fog:'#10141c',wall:'#1c1f26',ground:'#262a31',amb:.12,fogAmt:.5,green:0,snow:1,snowfall:.7,wind:.35,dark:1,lampsOn:1,win:.35},
+  pociag:{skyT:'#04060a',skyB:'#161a24',fog:'#141820',wall:'#1c1f26',ground:'#262a31',amb:.12,fogAmt:.4,green:0,snow:1,snowfall:.8,wind:.25,dark:1,lampsOn:1,win:.35},
+  odjazd:{skyT:'#04060a',skyB:'#161a24',fog:'#141820',wall:'#1c1f26',ground:'#262a31',amb:.12,fogAmt:.4,green:0,snow:1,snowfall:.9,wind:.3,dark:.2,lampsOn:1,win:.2},
+  rano:{skyT:'#a9b9c7',skyB:'#eef1f2',fog:'#e3e8eb',wall:'#b7bdc2',ground:'#dde3e6',amb:1.05,fogAmt:.7,green:0,snow:1,snowfall:.06,wind:.08,figure:1,tone:.12},
+  epilog:{skyT:'#252a2f',skyB:'#7a6959',fog:'#595047',wall:'#434139',ground:'#39362f',amb:.4,fogAmt:.5,green:.6,wind:.25,ghost:1},
+  koniec:{skyT:'#050606',skyB:'#0c0e0e',fog:'#0a0b0b',wall:'#0d0e0e',ground:'#0b0c0c',amb:.05,fogAmt:1,green:.2,wind:.04,landmarks:0,tone:0}
+};
+
+// stan bieżący (S) i docelowy (T)
+const S={}, T={};
+function presetTarget(name, ovr){
+  const p=Object.assign({},BASE,PRESETS[name]||{},ovr||{});
+  for(const k in p){T[k]=COLOR_KEYS.includes(k)?hex(p[k]):p[k];}
+}
+presetTarget('prolog');
+for(const k in T){S[k]=Array.isArray(T[k])?T[k].slice():T[k];}
+
+// elementy zmieniane przez działania czytelnika
+const SC={
+  lamp:[0,0,0], lampT:[0,0,0],   // latarnie stacyjne 1, 2, latarnia zwrotnicy
+  sema:0, semaT:0,               // ramię semafora: 0 stój, 1 wolna droga
+  alarm:0, alarmT:0,             // zwrotnica: zielone / rubinowe
+  branch:0, branchT:0,           // odgałęzienie odtworzone przez Luśnię
+  rails:1, railsT:1,             // rozbiórka toru
+  booth:1, boothT:1,             // rozbiórka budki
+  listen:0, listenT:0,           // nasłuch (kamera przy szynie)
+  walk:0, shake:0, flicker:0,
+  mx:.45, my:.6                  // latarnia w dłoni (kursor)
+};
+const TRN={z:260,v:0,active:false,lit:0,stopped:false,departing:false,light:0};
+const GHOSTS=[];
+const PUFFS=[];
+
+// ================= płótno =================
+const cv=document.getElementById('scene'), cx=cv.getContext('2d');
+let W=0,H=0,DPR=1,F=1,X0=0,Y0=0,NARROW=false;
+const ZT=92, ZN=.55;
+const CAM={x:-.2,h:1.65};
+function resize(){
+  DPR=Math.min(window.devicePixelRatio||1,1.5);
+  W=cv.width=Math.max(2,Math.round(innerWidth*DPR));
+  H=cv.height=Math.max(2,Math.round(innerHeight*DPR));
+  NARROW=innerWidth<760;
+}
+resize(); addEventListener('resize',resize);
+function P(x,y,z){const f=F/z;return [X0+(x-CAM.x)*f, Y0+(CAM.h-y)*f];}
+function poly(pts){cx.beginPath();cx.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length;i++)cx.lineTo(pts[i][0],pts[i][1]);cx.closePath();}
+function quad(a,b,c,d){poly([P(a[0],a[1],a[2]),P(b[0],b[1],b[2]),P(c[0],c[1],c[2]),P(d[0],d[1],d[2])]);}
+function fogK(z){return clamp((z-6)/(ZT-6),0,1)*S.fogAmt;}
+function fogged(c,z){return mix(c,S.fog,fogK(z)*.9);}
+
+// ziarno
+const grain=document.createElement('canvas');grain.width=grain.height=192;
+(()=>{const g=grain.getContext('2d'),d=g.createImageData(192,192);for(let i=0;i<d.data.length;i+=4){const v=Math.random()*255;d.data[i]=d.data[i+1]=d.data[i+2]=v;d.data[i+3]=255;}g.putImageData(d,0,0);})();
+let grainPat=null;
+
+// elementy stałe: jodły, kępy, tłuczeń
+const R=rng(1919);
+const FIRS=[];
+for(const side of [-1,1]){let z=4;while(z<ZT+4){const near=side>0&&z>8&&z<34;FIRS.push({side,z,h:(near?8:5)+R()*(near?6:5),off:R()*2.2});z+=(near?1.3:2.1)+R()*1.8;}}
+FIRS.sort((a,b)=>b.z-a.z);
+const HILLFIRS=[];for(let i=0;i<46;i++){HILLFIRS.push({x:-30+60*R(),h:3+R()*4});}
+const TUFTS=[];for(let i=0;i<300;i++){TUFTS.push({side:R()<.5?-1:1,u:R()*.95,z:1.5+R()*(ZT-1.5),s:.25+R()*.5,v:R()});}
+const BALLAST=[];for(let i=0;i<700;i++){BALLAST.push({x:-6.3+12.6*R(),z:1+R()*59,s:.03+R()*.05,v:R()});}
+const FLAKES=[];for(let i=0;i<320;i++){FLAKES.push({x:Math.random(),y:Math.random(),d:.2+Math.random()*.8,p:Math.random()*6.28});}
+const DROPS=[];for(let i=0;i<260;i++){DROPS.push({x:Math.random(),y:Math.random(),d:.3+Math.random()*.7});}
+const LEAVES=[];for(let i=0;i<46;i++){LEAVES.push({x:Math.random(),y:Math.random(),d:.3+Math.random()*.7,p:Math.random()*6.28,r:Math.random()*6.28});}
+const wrapZ=(z,a,b)=>{const L=b-a;return a+(((z-a)%L)+L)%L;};
+
+function glow(x,y,r,c,a){
+  if(a<=.003||r<.5)return;
+  const g=cx.createRadialGradient(x,y,0,x,y,r);
+  g.addColorStop(0,rgba(c,a));g.addColorStop(.25,rgba(c,a*.45));g.addColorStop(1,rgba(c,0));
+  cx.fillStyle=g;cx.fillRect(x-r,y-r,r*2,r*2);
+}
+
+// ================= rysowanie =================
+let lastT=performance.now(), TIME=0;
+function stepState(dt){
+  const k=1-Math.exp(-dt*.75);
+  for(const key in T){
+    const t=T[key];
+    if(Array.isArray(t)){const s=S[key];s[0]+=(t[0]-s[0])*k;s[1]+=(t[1]-s[1])*k;s[2]+=(t[2]-s[2])*k;}
+    else S[key]+=(t-S[key])*(key==='dark'?1-Math.exp(-dt*1.2):k);
+  }
+  const k2=1-Math.exp(-dt*2.2);
+  for(let i=0;i<3;i++)SC.lamp[i]+=(SC.lampT[i]-SC.lamp[i])*k2;
+  SC.sema+=(SC.semaT-SC.sema)*k2; SC.alarm+=(SC.alarmT-SC.alarm)*k2;
+  SC.branch+=(SC.branchT-SC.branch)*(1-Math.exp(-dt*.5));
+  SC.rails+=(SC.railsT-SC.rails)*(1-Math.exp(-dt*.28));
+  SC.booth+=(SC.boothT-SC.booth)*(1-Math.exp(-dt*.3));
+  SC.listen+=(SC.listenT-SC.listen)*(1-Math.exp(-dt*1.6));
+  SC.shake*=Math.exp(-dt*2.5);
+  SC.flicker*=Math.exp(-dt*6);
+}
+
+function draw(){
+  const now=performance.now();const rawDt=Math.min(.5,(now-lastT)/1000);let dt=Math.min(.05,rawDt);lastT=now;TIME+=dt;
+  stepState(dt);
+  updateTrain(dt);
+
+  // kamera
+  const L=smooth(SC.listen);
+  CAM.x=lerp(-.2,-1.36,L);
+  CAM.h=lerp(1.65,.12,L)+(S.walk>.05?Math.sin(SC.walk*2.4)*.035*S.walk:0);
+  F=H*(NARROW?1.25:1.05);
+  X0=W*(NARROW?.56:.64)+lerp(0,W*.06,L);
+  Y0=H*lerp(.47,.5,L);
+
+  cx.save();
+  if(SC.shake>.01&&!REDUCED){cx.translate((Math.random()-.5)*SC.shake*14*DPR,(Math.random()-.5)*SC.shake*10*DPR);}
+
+  // niebo
+  let g=cx.createLinearGradient(0,0,0,Y0);
+  g.addColorStop(0,rgba(S.skyT));g.addColorStop(1,rgba(S.skyB));
+  cx.fillStyle=g;cx.fillRect(-40,-40,W+80,H+80);
+
+  // wzgórze nad tunelem
+  const hillC=mix(mix(S.wall,S.fog,.55),[10,12,12],.25);
+  cx.beginPath();
+  let a=P(-60,11,ZT+14);cx.moveTo(a[0],a[1]);
+  for(let i=0;i<=40;i++){const x=-60+120*i/40;const y=11+10*Math.exp(-(x*x)/320)+Math.sin(x*.3)*.6;const q=P(x,y,ZT+14);cx.lineTo(q[0],q[1]);}
+  a=P(60,-2,ZT+14);cx.lineTo(a[0],a[1]);a=P(-60,-2,ZT+14);cx.lineTo(a[0],a[1]);cx.closePath();
+  cx.fillStyle=rgba(hillC);cx.fill();
+  cx.fillStyle=rgba(mix(hillC,[8,10,10],.45));
+  for(const f of HILLFIRS){const y=11+10*Math.exp(-(f.x*f.x)/320)+Math.sin(f.x*.3)*.6;const b1=P(f.x-.9,y-.3,ZT+14),b2=P(f.x+.9,y-.3,ZT+14),tp=P(f.x,y+f.h,ZT+14);cx.beginPath();cx.moveTo(b1[0],b1[1]);cx.lineTo(tp[0],tp[1]);cx.lineTo(b2[0],b2[1]);cx.fill();}
+  if(S.snow>.02){cx.strokeStyle=rgba([235,240,245],.5*S.snow);cx.lineWidth=1.5*DPR;cx.beginPath();for(let i=0;i<=40;i++){const x=-60+120*i/40;const y=11+10*Math.exp(-(x*x)/320)+Math.sin(x*.3)*.6;const q=P(x,y,ZT+14);i?cx.lineTo(q[0],q[1]):cx.moveTo(q[0],q[1]);}cx.stroke();}
+
+  // czoło tunelu
+  const portalC=mix(mix(S.wall,[20,20,20],.3),S.fog,S.fogAmt*.65);
+  quad([-6.5,0,ZT],[-11,12,ZT],[11,12,ZT],[6.5,0,ZT]);cx.fillStyle=rgba(portalC);cx.fill();
+  // mur portalu
+  cx.strokeStyle=rgba(mix(portalC,[0,0,0],.3),.6);cx.lineWidth=Math.max(1,F*.05/ZT);
+  for(let y=1;y<12;y+=1.1){const l=P(-6.5-4.5*y/12,y,ZT),r=P(6.5+4.5*y/12,y,ZT);cx.beginPath();cx.moveTo(l[0],l[1]);cx.lineTo(r[0],r[1]);cx.stroke();}
+  // wylot
+  const bl=P(-4.3,0,ZT),br=P(4.3,0,ZT),cc=P(0,4.3,ZT),rr=F*4.3/ZT;
+  const tunnelLight=clamp(TRN.light,0,1);
+  cx.beginPath();cx.moveTo(bl[0],bl[1]);cx.lineTo(bl[0],cc[1]);cx.arc(cc[0],cc[1],rr,Math.PI,0);cx.lineTo(br[0],br[1]);cx.closePath();
+  g=cx.createRadialGradient(cc[0],cc[1]+rr*.6,0,cc[0],cc[1]+rr*.6,rr*1.4);
+  g.addColorStop(0,rgba(mix([6,6,7],[255,190,80],tunnelLight*.9)));g.addColorStop(1,rgba(mix([3,3,4],[80,50,20],tunnelLight*.5)));
+  cx.fillStyle=g;cx.fill();
+  cx.strokeStyle=rgba(mix(portalC,[200,200,190],.18),.8);cx.lineWidth=rr*.14;
+  cx.beginPath();cx.moveTo(bl[0]-rr*.07,bl[1]);cx.lineTo(bl[0]-rr*.07,cc[1]);cx.arc(cc[0],cc[1],rr*1.07,Math.PI,0);cx.lineTo(br[0]+rr*.07,br[1]);cx.stroke();
+
+  // ściany parowu
+  const wallL=S.wall, wallR=mix(S.wall,[0,0,0],.22);
+  for(const side of [-1,1]){
+    const xb=side*6.5,xt=side*11;
+    quad([xb,0,ZN],[xb,0,ZT],[xt,12,ZT],[xt,12,ZN]);
+    const p1=P(xb*1.3,5,2),p2=P(xb*1.3,5,ZT);
+    g=cx.createLinearGradient(p1[0],p1[1],p2[0],p2[1]);
+    const wc=side<0?wallL:wallR;
+    g.addColorStop(0,rgba(mix(wc,[0,0,0],.25)));g.addColorStop(.35,rgba(wc));g.addColorStop(1,rgba(mix(wc,S.fog,S.fogAmt*.85)));
+    cx.fillStyle=g;cx.fill();
+    // warstwy skalne
+    cx.strokeStyle='rgba(0,0,0,.14)';cx.lineWidth=DPR;
+    for(let y=1.4;y<12;y+=1.55){const x=side*(6.5+4.5*y/12);const q1=P(x,y,1.2),q2=P(x,y,ZT);cx.beginPath();cx.moveTo(q1[0],q1[1]);cx.lineTo(q2[0],q2[1]);cx.stroke();}
+    // śnieg na zboczu
+    if(S.snow>.02){quad([xb,0,ZN],[xb,0,ZT],[xt,12,ZT],[xt,12,ZN]);cx.fillStyle=rgba([222,228,236],.28*S.snow);cx.fill();}
+  }
+  // kępy traw i kamienie
+  const vegC=mix([74,70,58],[64,92,48],S.green), autumnC=[132,104,52];
+  const tuftC=mix(mix(vegC,autumnC,clamp(.6-S.green,0,.6)),[228,232,238],S.snow*.85);
+  for(const t of TUFTS){
+    const z=S.walk>.02?wrapZ(t.z-SC.walk,1.5,ZT):t.z;
+    const x=t.side*(6.5+4.5*t.u),y=12*t.u;const q=P(x,y,z);const s=Math.max(.8,F*t.s/z);
+    cx.fillStyle=rgba(fogged(mix(tuftC,[20,20,18],t.v*.5),z),.85);
+    cx.fillRect(q[0]-s,q[1]-s*.35,s*2,s*.5);
+  }
+  // jodły na krawędziach
+  for(const f of FIRS){
+    const z=S.walk>.02?wrapZ(f.z-SC.walk,4,ZT+4):f.z;
+    if(z<2.5)continue;
+    const x=f.side*(11.3+f.off);const base=P(x,12,z),top=P(x,12+f.h,z);const w=F*f.h*.22/z;
+    const fc=fogged(mix(mix(S.wall,[8,14,11],.72),[20,26,22],.2),z);
+    cx.fillStyle=rgba(fc);
+    for(let k=0;k<3;k++){const ty=lerp(base[1],top[1],k*.28);const by=lerp(base[1],top[1],k*.28-.12);const ww=w*(1-k*.22);
+      cx.beginPath();cx.moveTo(base[0]-ww,by);cx.lineTo(top[0],top[1]+(base[1]-top[1])*k*.05);cx.lineTo(base[0]+ww,by);cx.closePath();cx.fill();
+      if(S.snow>.05){cx.strokeStyle=rgba([230,235,242],.55*S.snow);cx.lineWidth=Math.max(1,w*.08);cx.beginPath();cx.moveTo(base[0]-ww*.8,by-(by-ty)*.1);cx.lineTo(top[0],top[1]);cx.stroke();}
+    }
+  }
+
+  // podłoże
+  quad([-6.5,0,ZN],[6.5,0,ZN],[6.5,0,ZT],[-6.5,0,ZT]);
+  g=cx.createLinearGradient(0,Y0,0,H);
+  const gc=mix(S.ground,[214,220,228],S.snow*.8);
+  g.addColorStop(0,rgba(mix(gc,S.fog,S.fogAmt*.8)));g.addColorStop(.2,rgba(gc));g.addColorStop(1,rgba(mix(gc,[0,0,0],.25)));
+  cx.fillStyle=g;cx.fill();
+  // tłuczeń
+  for(const b of BALLAST){
+    const z=wrapZ(b.z-SC.walk,1,60);const q=P(b.x,0,z);const s=Math.max(.7,F*b.s/z);
+    cx.fillStyle=rgba(fogged(mix(mix(gc,[0,0,0],.35),[160,155,140],b.v*.35),z),.8);
+    cx.fillRect(q[0],q[1],s*1.4,s*.7);
+  }
+  // podkłady i szyny
+  const zMax=lerp(ZN+.2,ZT,SC.rails);
+  const slC=mix(mix([58,46,36],S.ground,.35),[210,216,224],S.snow*.7);
+  const ph=((SC.walk%.63)+.63)%.63;
+  for(const tx of [-2,2]){
+    for(let z=ZT-((ZT-ph)%.63);z>ZN;z-=.63){
+      if(z>zMax)continue;
+      quad([tx-1.3,.03,z],[tx+1.3,.03,z],[tx+1.3,.03,z+.24],[tx-1.3,.03,z+.24]);
+      cx.fillStyle=rgba(fogged(slC,z));cx.fill();
+    }
+  }
+  const railC=mix([66,66,62],S.skyB,.3), railHi=mix([150,150,140],S.skyB,.5);
+  function rail(x,z0,z1){
+    if(z1<=z0)return;
+    quad([x-.05,.02,z0],[x+.05,.02,z0],[x+.05,.02,z1],[x-.05,.02,z1]);cx.fillStyle='rgba(0,0,0,.35)';cx.fill();
+    quad([x-.036,.16,z0],[x+.036,.16,z0],[x+.036,.16,z1],[x-.036,.16,z1]);
+    const n=P(x,.16,z0),f=P(x,.16,z1);g=cx.createLinearGradient(n[0],n[1],f[0],f[1]);
+    g.addColorStop(0,rgba(railC));g.addColorStop(.5,rgba(railHi));g.addColorStop(1,rgba(mix(railHi,S.fog,S.fogAmt)));
+    cx.fillStyle=g;cx.fill();
+  }
+  for(const tx of [-2,2]){rail(tx-.7175,ZN,zMax);rail(tx+.7175,ZN,zMax);}
+  // odgałęzienie
+  if(SC.branch>.01){
+    cx.globalAlpha=SC.branch;
+    const bx=z=>2+2.9*smooth((34-z)/30);
+    for(let z=34;z>ZN+.4;z-=.63){if(z>zMax)continue;const c=bx(z);quad([c-1.3,.03,z],[c+1.3,.03,z],[c+1.3,.03,z+.24],[c-1.3,.03,z+.24]);cx.fillStyle=rgba(fogged(slC,z));cx.fill();}
+    for(const o of [-.7175,.7175]){
+      cx.strokeStyle=rgba(railHi);
+      for(let z=34;z>ZN+.4;z-=1){if(z>zMax)continue;const q1=P(bx(z)+o,.16,z),q2=P(bx(z-1)+o,.16,Math.max(ZN,z-1));cx.lineWidth=Math.max(1,F*.07/z);cx.beginPath();cx.moveTo(q1[0],q1[1]);cx.lineTo(q2[0],q2[1]);cx.stroke();}
+    }
+    cx.globalAlpha=1;
+  }
+
+  // zabudowania przystanku
+  const LM=S.landmarks*SC.booth;
+  if(LM>.01){
+    cx.globalAlpha=clamp(LM,0,1);
+    // semafor
+    {const z=55,x=5.4;const b=P(x,0,z),t=P(x,8.2,z);cx.strokeStyle=rgba(fogged([40,40,38],z));cx.lineWidth=Math.max(1,F*.16/z);cx.beginPath();cx.moveTo(b[0],b[1]);cx.lineTo(t[0],t[1]);cx.stroke();
+      const an=lerp(0,.75,SC.sema);const pv=P(x,7.6,z),ae=P(x-1.9*Math.cos(an),7.6+1.9*Math.sin(an),z);cx.lineWidth=Math.max(1.5,F*.28/z);cx.strokeStyle=rgba(fogged(mix([150,40,35],[80,80,78],.3),z));cx.beginPath();cx.moveTo(pv[0],pv[1]);cx.lineTo(ae[0],ae[1]);cx.stroke();}
+    // nastawnia (blok)
+    {const x=-6.1;quad([x,0,19],[x,0,27],[x,3.8,27],[x,3.8,19]);cx.fillStyle=rgba(fogged(mix([150,138,116],S.wall,.35),23));cx.fill();
+      quad([x+.05,3.8,18.7],[x+.05,3.8,27.3],[x-1.5,5,27.3],[x-1.5,5,18.7]);cx.fillStyle=rgba(fogged(mix([70,62,58],[228,232,240],S.snow*.8),23));cx.fill();
+      for(const zz of [20.2,22.6,25]){quad([x+.02,1.7,zz],[x+.02,1.7,zz+1.2],[x+.02,2.9,zz+1.2],[x+.02,2.9,zz]);cx.fillStyle=rgba(fogged([28,30,32],23));cx.fill();}
+      quad([x,0,19],[x-1.6,0,19],[x-1.6,3.8,19],[x,3.8,19]);cx.fillStyle=rgba(fogged(mix([120,110,92],S.wall,.4),19));cx.fill();}
+    // latarnia stacyjna dalsza
+    lampPost(4.4,27);
+    // budka dróżnika
+    {const x=7.6;
+      quad([x,2.2,15.5],[x+1.9,2.2,15.5],[x+1.9,5.4,15.5],[x,5.4,15.5]);cx.fillStyle=rgba(fogged(mix([112,104,88],S.wall,.35),15.5));cx.fill();
+      quad([x,2.2,15.5],[x,2.2,22.5],[x,5.4,22.5],[x,5.4,15.5]);cx.fillStyle=rgba(fogged(mix([138,128,108],S.wall,.25),19));cx.fill();
+      quad([x-.05,5.4,15.2],[x-.05,5.4,22.8],[x+1.5,6.9,22.8],[x+1.5,6.9,15.2]);cx.fillStyle=rgba(fogged(mix([132,52,40],[230,234,240],S.snow*.85),19));cx.fill();
+      // okna i drzwi
+      const wl=S.win*SC.booth;
+      for(const zz of [16.6,20.4]){quad([x-.02,3.3,zz],[x-.02,3.3,zz+1.15],[x-.02,4.6,zz+1.15],[x-.02,4.6,zz]);cx.fillStyle=rgba(mix([30,32,34],[255,196,110],wl));cx.fill();}
+      quad([x-.02,2.2,18.5],[x-.02,2.2,19.5],[x-.02,4.7,19.5],[x-.02,4.7,18.5]);cx.fillStyle=rgba(fogged([62,52,42],19));cx.fill();}
+    // topola samotna
+    drawPoplar(6.9,2,13.4);
+    // latarnia stacyjna bliższa
+    lampPost(4.4,11);
+    // latarnia zwrotnicy
+    {const q=P(.15,0,8.8),t=P(.15,1.1,8.8);cx.strokeStyle=rgba([35,35,33]);cx.lineWidth=Math.max(1,F*.08/8.8);cx.beginPath();cx.moveTo(q[0],q[1]);cx.lineTo(t[0],t[1]);cx.stroke();
+      quad([-.05,1.05,8.8],[.35,1.05,8.8],[.35,1.4,8.8],[-.05,1.4,8.8]);cx.fillStyle='rgba(28,28,26,1)';cx.fill();}
+    cx.globalAlpha=1;
+  }
+  // postać o świcie
+  if(S.figure>.01){
+    cx.globalAlpha=clamp(S.figure,0,1)*clamp(LM+.3,0,1);
+    const x=3.3,z=9.4;const c=[34,38,44];cx.fillStyle=rgba(c);cx.strokeStyle=rgba(c);
+    const f0=P(x-.22,0,z),f1=P(x+.22,0,z),sh=P(x-.26,1.42,z),sh2=P(x+.26,1.42,z);
+    cx.beginPath();cx.moveTo(f0[0],f0[1]);cx.lineTo(sh[0],sh[1]);cx.lineTo(sh2[0],sh2[1]);cx.lineTo(f1[0],f1[1]);cx.closePath();cx.fill();
+    const hd=P(x,1.6,z);cx.beginPath();cx.arc(hd[0],hd[1],F*.13/z,0,6.3);cx.fill();
+    const cp=P(x,1.73,z);cx.fillRect(cp[0]-F*.16/z,cp[1]-F*.05/z,F*.32/z,F*.07/z);
+    const hand=P(x+.42,2.25,z);cx.lineWidth=F*.09/z;cx.beginPath();cx.moveTo(sh2[0],sh2[1]);cx.lineTo(hand[0],hand[1]);cx.stroke();
+    cx.fillRect(hand[0]-F*.06/z,hand[1],F*.12/z,F*.16/z);
+    cx.globalAlpha=1;
+  }
+
+  // pociąg
+  drawTrain();
+
+  // para
+  for(let i=PUFFS.length-1;i>=0;i--){const p=PUFFS[i];p.life-=dt*.35;p.y+=dt*(1.1+p.r*.2);p.r+=dt*.9;p.x+=dt*(S.wind*1.2+.2);if(p.life<=0||p.z<ZN){PUFFS.splice(i,1);continue;}
+    const q=P(p.x,p.y,p.z);cx.fillStyle=rgba(mix([150,155,165],[255,210,150],TRN.lit*.25),p.life*.22);cx.beginPath();cx.arc(q[0],q[1],F*p.r/p.z,0,6.3);cx.fill();}
+
+  // mrok
+  const dimA=clamp(1-S.amb,0,1)*.93;
+  if(dimA>.005){cx.fillStyle=`rgba(3,4,7,${dimA})`;cx.fillRect(-40,-40,W+80,H+80);}
+  // mgła
+  g=cx.createLinearGradient(0,Y0-H*.28,0,Y0+H*.22);
+  g.addColorStop(0,rgba(S.fog,0));g.addColorStop(.58,rgba(S.fog,clamp(S.fogAmt*.62*(.35+S.amb*.65),0,.9)));g.addColorStop(1,rgba(S.fog,0));
+  cx.fillStyle=g;cx.fillRect(-40,Y0-H*.28,W+80,H*.5);
+
+  // światła
+  cx.globalCompositeOperation='lighter';
+  const nightK=clamp(1.1-S.amb,0,1);
+  if(LM>.01){
+    const lo=S.lampsOn*LM;
+    lampGlow(4.4,27,SC.lamp[1]*lo,nightK);
+    lampGlow(4.4,11,SC.lamp[0]*lo,nightK);
+    const sw=SC.lamp[2]*lo;if(sw>.01){const q=P(.15,1.22,8.8);const c=mix([90,235,150],[240,60,45],SC.alarm);glow(q[0],q[1],Math.max(14*DPR,F*1.4/8.8),c,.55*sw*(.35+nightK));glow(q[0],q[1],Math.max(3*DPR,F*.2/8.8),[255,255,255],.6*sw);}
+    const sl=lo*SC.lamp[1];if(sl>.01){const q=P(5.4,7.3,55);const c=SC.sema>.5?[110,240,170]:[240,70,55];glow(q[0],q[1],Math.max(10*DPR,F*2.2/55),c,.5*sl*(.3+nightK));}
+    const wl=S.win*LM;if(wl>.01){for(const zz of [17.2,21]){const q=P(7.6,3.95,zz);glow(q[0],q[1],F*2.4/zz,[255,180,100],.22*wl*(.2+nightK));}}
+  }
+  lightTrain();
+  // echa pociągów (duchy)
+  for(let i=GHOSTS.length-1;i>=0;i--){const gh=GHOSTS[i];gh.z-=gh.v*dt;gh.t+=dt;if(gh.z<-90){GHOSTS.splice(i,1);continue;}
+    const al=gh.a*Math.min(1,gh.t/1.5);
+    for(let k=0;k<30;k++){const zz=gh.z+9+k*2+Math.floor(k/6)*2.2;if(zz<ZN+.3||zz>ZT)continue;quad([-.55,2.2,zz],[-.55,2.2,zz+1.1],[-.55,3.1,zz+1.1],[-.55,3.1,zz]);cx.fillStyle=rgba([150,175,210],al*.35*(1-fogK(zz))*clamp((zz-2)/7,0,1));cx.fill();}
+    const e=P(-2,1.6,Math.max(ZN+.2,gh.z));if(gh.z>ZN&&gh.z<ZT)glow(e[0],e[1],F*2/gh.z,[170,190,230],al*.3);
+  }
+  // latarnia w dłoni
+  if(S.dark>.02){const mx=SC.mx*W,my=SC.my*H;glow(mx,my,300*DPR,[255,178,90],.16*S.dark);glow(mx,my,60*DPR,[255,210,150],.12*S.dark);}
+  if(SC.flicker>.01){cx.fillStyle=`rgba(255,200,120,${SC.flicker*.35})`;cx.fillRect(-40,-40,W+80,H+80);}
+  cx.globalCompositeOperation='source-over';
+
+  // opady
+  const wind=S.wind;
+  if(S.snowfall>.01){cx.fillStyle=rgba([236,240,246],.85*S.snowfall);
+    for(const f of FLAKES){f.y+=dt*(.02+.06*f.d);f.x+=dt*(.015*Math.sin(TIME*.8+f.p)+wind*.05*f.d);if(f.y>1.02){f.y=-.02;f.x=Math.random();}if(f.x>1.02)f.x=-.02;const r=(.6+f.d*2.2)*DPR;cx.beginPath();cx.arc(f.x*W,f.y*H,r,0,6.3);cx.fill();}}
+  if(S.rain>.01){cx.strokeStyle=rgba([200,208,215],.3*S.rain);cx.lineWidth=DPR;cx.beginPath();
+    for(const d of DROPS){d.y+=dt*(1.1+d.d*.9);d.x+=dt*wind*.12;if(d.y>1.05){d.y=-.05;d.x=Math.random();}if(d.x>1.05)d.x=-.05;const x=d.x*W,y=d.y*H,l=(12+22*d.d)*DPR;cx.moveTo(x,y);cx.lineTo(x-l*(.12+wind*.25),y-l);}cx.stroke();}
+  if(S.leaves>.01){for(const l of LEAVES){l.x+=dt*(.03+wind*.14)*l.d;l.y+=dt*(.03+.04*Math.sin(TIME+l.p))*l.d;l.r+=dt*(1+wind*3);if(l.x>1.05){l.x=-.05;l.y=Math.random()*.8;}if(l.y>1.05)l.y=-.05;
+      cx.save();cx.translate(l.x*W,l.y*H);cx.rotate(l.r);cx.fillStyle=rgba(mix([150,100,40],[90,70,40],l.d),.8*S.leaves);const s=(3+5*l.d)*DPR;cx.fillRect(-s,-s*.35,s*2,s*.7);cx.restore();}}
+
+  // winieta
+  const vg=cx.createRadialGradient(W*.55,H*.5,Math.min(W,H)*.25,W*.55,H*.5,Math.max(W,H)*.75);
+  vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,`rgba(0,0,0,${.5+L*.3})`);cx.fillStyle=vg;cx.fillRect(-40,-40,W+80,H+80);
+  // ziarno
+  if(!grainPat)grainPat=cx.createPattern(grain,'repeat');
+  cx.globalAlpha=.07;cx.globalCompositeOperation='overlay';cx.translate((Math.random()*192)|0,(Math.random()*192)|0);cx.fillStyle=grainPat;cx.fillRect(-200,-200,W+400,H+400);
+  cx.globalAlpha=1;cx.globalCompositeOperation='source-over';
+  cx.restore();
+
+  if(window.onFrame)window.onFrame(rawDt);
+  requestAnimationFrame(draw);
+}
+
+function lampPost(x,z){
+  const b=P(x,0,z),t=P(x,3.9,z);cx.strokeStyle=rgba(fogged([36,36,34],z));cx.lineWidth=Math.max(1,F*.1/z);cx.beginPath();cx.moveTo(b[0],b[1]);cx.lineTo(t[0],t[1]);cx.stroke();
+  quad([x-.2,3.7,z],[x+.2,3.7,z],[x+.2,4.2,z],[x-.2,4.2,z]);cx.fillStyle=rgba(fogged([30,30,28],z));cx.fill();
+  const arm=P(x-.5,3.9,z);cx.beginPath();cx.moveTo(t[0],t[1]);cx.lineTo(arm[0],arm[1]);cx.stroke();
+}
+function lampGlow(x,z,v,nightK){if(v<.01)return;const q=P(x,3.95,z);glow(q[0],q[1],Math.max(16*DPR,F*3.2/z),[255,196,120],.42*v*(.25+nightK));glow(q[0],q[1],Math.max(3*DPR,F*.28/z),[255,240,210],.8*v);
+  const gq=P(x,0,z);cx.save();cx.scale(1,.28);glow(gq[0],gq[1]/.28,F*3/z,[255,190,110],.14*v*nightK);cx.restore();}
+function drawPoplar(x,y0,z){
+  const sway=Math.sin(TIME*.9)*(.15+S.wind*.9)+Math.sin(TIME*2.3)*.12*S.wind;
+  const trunkB=P(x,y0,z),trunkT=P(x+sway*.4,y0+12.5,z);
+  cx.strokeStyle=rgba(fogged([46,40,34],z));cx.lineWidth=Math.max(1,F*.28/z);cx.beginPath();cx.moveTo(trunkB[0],trunkB[1]);cx.lineTo(trunkT[0],trunkT[1]);cx.stroke();
+  const leafy=clamp(S.green*1.3-.1,0,1);
+  if(leafy<.95){cx.lineWidth=Math.max(1,F*.05/z);for(let i=0;i<9;i++){const yy=y0+3+i*1.1;const s=(i%2?1:-1);const b=P(x+sway*.04*yy,yy,z),e=P(x+s*(.6+.2*(i%3))+sway*.05*yy,yy+1.6,z);cx.beginPath();cx.moveTo(b[0],b[1]);cx.lineTo(e[0],e[1]);cx.stroke();}}
+  if(leafy>.02){const c=mix(mix([116,104,52],[62,84,46],clamp(S.green,0,1)),[20,24,20],.2);cx.fillStyle=rgba(fogged(c,z),leafy);
+    cx.beginPath();const N=26;
+    for(let i=0;i<=N;i++){const t=i/N;const yy=y0+3+t*10;const w=1.25*Math.pow(Math.sin(Math.PI*clamp(t*1.02,0,1)),.75)+.05;const q=P(x-w+sway*Math.pow(t,1.6),yy,z);i?cx.lineTo(q[0],q[1]):cx.moveTo(q[0],q[1]);}
+    for(let i=N;i>=0;i--){const t=i/N;const yy=y0+3+t*10;const w=1.25*Math.pow(Math.sin(Math.PI*clamp(t*1.02,0,1)),.75)+.05;const q=P(x+w+sway*Math.pow(t,1.6),yy,z);cx.lineTo(q[0],q[1]);}
+    cx.closePath();cx.fill();}
+}
+
+// ================= pociąg =================
+function updateTrain(dt){
+  if(!TRN.active)return;
+  if(TRN.departing){TRN.v=Math.min(38,TRN.v+dt*(4+TRN.v*.35));TRN.z-=TRN.v*dt;
+    if(TRN.z<-160){TRN.active=false;TRN.departing=false;}}
+  // para z komina
+  if(TRN.z<ZT&&TRN.z>ZN&&Math.random()<dt*(TRN.stopped?5:9)){PUFFS.push({x:-2+(Math.random()-.5)*.3,y:5.3,z:TRN.z+.8,r:.5+Math.random()*.4,life:1});}
+  TRN.light=TRN.active?clamp(1-(TRN.z-ZT)/140,0,1)*(TRN.departing?clamp(1+TRN.z/40,0,1):1):0;
+}
+function drawTrain(){
+  if(!TRN.active||TRN.z>ZT+1)return;
+  const z0=Math.max(TRN.z,ZN+.05),z1=Math.min(TRN.z+86,ZT);
+  // bok składu
+  if(z1>z0){
+    quad([-.55,.9,z0],[-.55,.9,z1],[-.55,4.1,z1],[-.55,4.1,z0]);cx.fillStyle=rgba(mix([14,15,17],[40,34,30],TRN.lit*.3));cx.fill();
+    for(let k=0;k<44;k++){const zz=TRN.z+10+k*1.9+Math.floor(k/6)*2.4;if(zz<ZN+.3||zz>ZT-1)continue;quad([-.56,2.2,zz],[-.56,2.2,zz+1.15],[-.56,3.15,zz+1.15],[-.56,3.15,zz]);cx.fillStyle=rgba(mix([22,22,24],[255,196,112],TRN.lit*(1-fogK(zz)*.6)));cx.fill();}
+  }
+  if(TRN.z>ZN+.1){
+    const z=TRN.z;
+    quad([-3.5,.4,z],[-.5,.4,z],[-.5,4.3,z],[-3.5,4.3,z]);cx.fillStyle=rgba([10,11,13]);cx.fill();
+    const c=P(-2,2.7,z);cx.fillStyle=rgba([18,19,22]);cx.beginPath();cx.arc(c[0],c[1],F*1.15/z,0,6.3);cx.fill();
+    quad([-2.3,4.3,z],[-1.7,4.3,z],[-1.65,5.4,z],[-2.35,5.4,z]);cx.fillStyle=rgba([10,11,13]);cx.fill();
+    const bf=P(-3.6,.35,z),bf2=P(-.4,.35,z);cx.strokeStyle=rgba([90,30,24]);cx.lineWidth=Math.max(1,F*.14/z);cx.beginPath();cx.moveTo(bf[0],bf[1]);cx.lineTo(bf2[0],bf2[1]);cx.stroke();
+  }
+}
+function lightTrain(){
+  if(!TRN.active)return;
+  const L=TRN.light;
+  if(TRN.z>ZT){ // blask w tunelu
+    const q=P(0,2.2,ZT);glow(q[0],q[1],F*9/ZT,[255,180,70],.35*L);return;}
+  const z=Math.max(TRN.z,ZN+.1);
+  if(TRN.z>ZN+.1){
+    // stożki światła
+    const a=P(-3.3,.02,z),b=P(-.7,.02,z),c=P(1.8,.02,Math.max(ZN+.2,z-30)),d=P(-6.2,.02,Math.max(ZN+.2,z-30));
+    cx.beginPath();cx.moveTo(a[0],a[1]);cx.lineTo(b[0],b[1]);cx.lineTo(c[0],c[1]);cx.lineTo(d[0],d[1]);cx.closePath();
+    const gg=cx.createLinearGradient(0,a[1],0,Math.min(H,c[1]));gg.addColorStop(0,'rgba(255,190,80,.28)');gg.addColorStop(1,'rgba(255,190,80,0)');cx.fillStyle=gg;cx.fill();
+    for(const ex of [-2.85,-1.15]){const e=P(ex,1.55,z);glow(e[0],e[1],Math.max(30*DPR,F*5/z),[255,176,60],.55);glow(e[0],e[1],Math.max(6*DPR,F*.55/z),[255,236,180],.95);}
+    const big=P(-2,1.6,z);glow(big[0],big[1],Math.max(W,H)*.6*clamp(12/z,0,1),[255,170,70],.18);
+  }
+  // światło przejeżdżających okien
+  if(TRN.departing){let near=0;for(let k=0;k<44;k++){const zz=TRN.z+10+k*1.9+Math.floor(k/6)*2.4;if(zz>ZN&&zz<5)near=Math.max(near,1-(zz-ZN)/5);}SC.flicker=Math.max(SC.flicker,near*(.6+.4*Math.random()));}
+}
+
+requestAnimationFrame(draw);
+
+// ================= dźwięk (Web Audio, bez nagrań) =================
+const AU=(()=>{
+  let ctx=null, master, comp, revIn, amb, ambLP, mem, sfx, listenBus;
+  const L={}; let noiseW,noiseP,noiseB; let muted=false, started=false;
+  const rnd=(a,b)=>a+Math.random()*(b-a);
+
+  function buf(kind,sec=4){
+    const n=ctx.sampleRate*sec, b=ctx.createBuffer(1,n,ctx.sampleRate), d=b.getChannelData(0);
+    let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0,last=0;
+    for(let i=0;i<n;i++){const w=Math.random()*2-1;
+      if(kind==='white')d[i]=w;
+      else if(kind==='pink'){b0=.99886*b0+w*.0555179;b1=.99332*b1+w*.0750759;b2=.969*b2+w*.153852;b3=.8665*b3+w*.3104856;b4=.55*b4+w*.5329522;b5=-.7616*b5-w*.016898;d[i]=(b0+b1+b2+b3+b4+b5+b6+w*.5362)*.11;b6=w*.115926;}
+      else {last=(last+.02*w)/1.02;d[i]=last*3.5;}
+    }
+    return b;
+  }
+  // pogłos parowu: echo odbijane na przemian lewo / prawo + rozproszony ogon
+  function impulse(sec,decay){
+    const n=ctx.sampleRate*sec, b=ctx.createBuffer(2,n,ctx.sampleRate);
+    for(let c=0;c<2;c++){const d=b.getChannelData(c);
+      for(let i=0;i<n;i++){d[i]=(Math.random()*2-1)*Math.pow(1-i/n,decay)*.55;}
+      for(let k=1;k<16;k++){const idx=Math.floor(ctx.sampleRate*(.021+k*.083));if(idx>=n)break;if((k%2)===c){const amp=.9*Math.pow(.78,k);for(let j=0;j<60;j++)d[idx+j]+=(Math.random()*2-1)*amp*(1-j/60);}}
+    }
+    return b;
+  }
+  function G(v=0){const g=ctx.createGain();g.gain.value=v;return g;}
+  function F(type,f,q=1){const x=ctx.createBiquadFilter();x.type=type;x.frequency.value=f;x.Q.value=q;return x;}
+  function pan(v){const p=ctx.createStereoPanner?ctx.createStereoPanner():G(1);if(p.pan)p.pan.value=v;return p;}
+  function loop(b){const s=ctx.createBufferSource();s.buffer=b;s.loop=true;s.loopStart=0;s.start(0,Math.random()*2);return s;}
+  function chain(...n){for(let i=0;i<n.length-1;i++)n[i].connect(n[i+1]);return n[n.length-1];}
+  function set(param,v,tc=.6){if(!ctx)return;param.setTargetAtTime(v,ctx.currentTime,tc);}
+
+  function init(){
+    if(ctx)return;
+    const AC=window.AudioContext||window.webkitAudioContext; if(!AC)return;
+    ctx=new AC();
+    master=G(0); comp=ctx.createDynamicsCompressor();
+    comp.threshold.value=-20;comp.knee.value=14;comp.ratio.value=3.5;comp.attack.value=.01;comp.release.value=.35;
+    chain(master,comp,ctx.destination);
+    noiseW=buf('white');noiseP=buf('pink');noiseB=buf('brown',6);
+    revIn=G(1); const rev=ctx.createConvolver(); rev.buffer=impulse(3.6,2.4); const revOut=G(.6); chain(revIn,rev,revOut,master);
+    ambLP=F('lowpass',18000,.5); amb=G(1); chain(amb,ambLP,master); const as=G(.22); ambLP.connect(as); as.connect(revIn);
+    mem=G(0); const md=G(.35); chain(mem,md,master); const ms=G(1.2); chain(mem,ms,revIn);
+    sfx=G(1); sfx.connect(master); const ss=G(.4); chain(sfx,ss,revIn);
+    listenBus=G(0); listenBus.connect(master); const ls=G(.5); chain(listenBus,ls,revIn);
+
+    // warstwy ciągłe
+    L.room=G(0); chain(loop(noiseB),F('lowpass',220,.5),L.room,amb);
+    L.windF=F('bandpass',380,.7); L.wind=G(0); chain(loop(noiseB),L.windF,L.wind,amb);
+    L.howlF=F('bandpass',760,10); L.howl=G(0); chain(loop(noiseP),L.howlF,L.howl,amb);
+    L.rain=G(0); chain(loop(noiseW),F('highpass',1400,.6),F('lowpass',8000,.5),L.rain,amb);
+    L.rumble=G(0); chain(loop(noiseB),F('lowpass',150,.9),L.rumble,sfx);
+    L.grumble=G(0); chain(loop(noiseB),F('lowpass',110,.9),L.grumble,mem);
+    L.hiss=G(0); chain(loop(noiseW),F('highpass',3200,.7),L.hiss,sfx);
+    // śpiew szyny (słyszalny tylko przy uchu)
+    L.drone=G(0); L.drone.connect(listenBus);
+    [131,197.5,262.8,331,467].forEach((f,i)=>{const o=ctx.createOscillator();o.type='sine';o.frequency.value=f;const g=G(.22/(i+1));const lf=ctx.createOscillator();lf.frequency.value=.07+i*.05;const lg=G(.12/(i+1));chain(lf,lg,g.gain);lf.start();chain(o,g,L.drone);o.start();});
+    L.dronenoise=G(0); chain(loop(noiseP),F('bandpass',900,4),L.dronenoise,listenBus);
+  }
+  function start(mute){
+    init(); if(!ctx)return; started=true; muted=!!mute;
+    if(ctx.state==='suspended')ctx.resume();
+    set(master.gain,muted?0:.95,1.2);
+    setInterval(tick,50);
+  }
+  function setMuted(m){muted=m; if(!ctx)return; if(ctx.state==='suspended')ctx.resume(); set(master.gain,m?0:.95,.3);}
+
+  // ------ zdarzenia ------
+  function env(g,t,a,peak,d){g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(peak,t+a);g.gain.exponentialRampToValueAtTime(.0001,t+a+d);}
+  function noiseSrc(b,t,dur){const s=ctx.createBufferSource();s.buffer=b;const room=b.duration-dur-.1;if(room<=0)s.loop=true;s.start(t,room>0?Math.random()*room:0);s.stop(t+dur+.05);return s;}
+  function osc(type,f,t,dur){const o=ctx.createOscillator();o.type=type;o.frequency.setValueAtTime(f,t);o.start(t);o.stop(t+dur+.05);return o;}
+
+  function bird(t=ctx.currentTime){
+    const g=G(0), p=pan(rnd(-.8,.8)); chain(g,p,amb);
+    const o=osc('sine',rnd(2600,4200),t,1.2);o.connect(g);
+    let tt=t;const n=2+Math.floor(Math.random()*5);const base=rnd(2600,4000);
+    for(let i=0;i<n;i++){o.frequency.setValueAtTime(base*rnd(.9,1.2),tt);o.frequency.exponentialRampToValueAtTime(base*rnd(.7,1.5),tt+.07);g.gain.setValueAtTime(.0001,tt);g.gain.linearRampToValueAtTime(.03,tt+.015);g.gain.exponentialRampToValueAtTime(.0001,tt+.09);tt+=rnd(.1,.16);}
+  }
+  function swallow(t=ctx.currentTime){
+    const g=G(0), p=pan(rnd(-.9,.9)); chain(g,p,amb);
+    const o=osc('triangle',rnd(4500,6000),t,.8);o.connect(g);let tt=t;
+    for(let i=0;i<6;i++){o.frequency.setValueAtTime(rnd(4200,6500),tt);g.gain.setValueAtTime(.0001,tt);g.gain.linearRampToValueAtTime(.012,tt+.01);g.gain.exponentialRampToValueAtTime(.0001,tt+.05);tt+=.06;}
+  }
+  function cricket(t=ctx.currentTime){
+    const g=G(0), p=pan(rnd(-1,1)); chain(g,p,amb);
+    const f=rnd(4100,4700);const o=osc('sine',f,t,.4);o.connect(g);let tt=t;const n=3+Math.floor(Math.random()*2);
+    for(let i=0;i<n;i++){g.gain.setValueAtTime(.0001,tt);g.gain.linearRampToValueAtTime(.022,tt+.006);g.gain.linearRampToValueAtTime(.0001,tt+.024);tt+=.038;}
+  }
+  function frog(t=ctx.currentTime){
+    const g=G(0), p=pan(rnd(-.7,.7)); const bp=F('bandpass',rnd(500,800),3); chain(bp,g,p,amb);
+    const o=osc('sawtooth',rnd(95,150),t,.8);o.connect(bp);let tt=t;const n=4+Math.floor(Math.random()*5);
+    for(let i=0;i<n;i++){g.gain.setValueAtTime(.0001,tt);g.gain.linearRampToValueAtTime(.05,tt+.008);g.gain.exponentialRampToValueAtTime(.0001,tt+.045);tt+=.052;}
+  }
+  function crow(t=ctx.currentTime){
+    const reps=1+Math.floor(Math.random()*3);const pv=rnd(-.8,.8);
+    for(let r=0;r<reps;r++){const tt=t+r*rnd(.4,.55);
+      const g=G(0),p=pan(pv),bp=F('bandpass',1250,2.2);chain(bp,g,p,amb);
+      const o=osc('sawtooth',rnd(560,700),tt,.4);o.frequency.exponentialRampToValueAtTime(rnd(380,460),tt+.32);o.connect(bp);
+      const n=noiseSrc(noiseW,tt,.35);const ng=G(.25);chain(n,F('bandpass',1500,1.5),ng,bp);
+      env(g,tt,.03,.09,.3);}
+  }
+  // szyny gwarzą: metaliczne trzaski stygnących szyn
+  function railTick(t=ctx.currentTime,bus){
+    const g=G(0),p=pan(rnd(-.9,.9));chain(g,p,bus||mem);
+    const n=noiseSrc(noiseW,t,.03);const bp=F('bandpass',rnd(2200,7000),rnd(18,40));chain(n,bp,g);env(g,t,.001,rnd(.25,.6),.05);
+    if(Math.random()<.45){const base=rnd(700,1900);[1,2.76,5.4].forEach((m,i)=>{const o=osc('sine',base*m,t,.6);const og=G(0);chain(o,og,p);env(og,t,.002,.02/(i+1),rnd(.3,.6));});}
+  }
+  // szepty, seplenienia
+  function whisper(t=ctx.currentTime,level=1){
+    const out=G(level),p=pan(rnd(-.9,.9));chain(out,p,mem);
+    const n=noiseSrc(noiseP,t,1.6);const hp=F('highpass',500,.7);n.connect(hp);
+    const f1=F('bandpass',600,7),f2=F('bandpass',1700,8),g=G(0);hp.connect(f1);hp.connect(f2);f1.connect(g);f2.connect(g);g.connect(out);
+    let tt=t;const syl=3+Math.floor(Math.random()*5);
+    for(let i=0;i<syl;i++){const d=rnd(.07,.17);f1.frequency.setValueAtTime(rnd(350,900),tt);f2.frequency.setValueAtTime(rnd(1100,2600),tt);
+      g.gain.setValueAtTime(.0001,tt);g.gain.linearRampToValueAtTime(rnd(.3,.7),tt+d*.3);g.gain.linearRampToValueAtTime(.0001,tt+d);tt+=d+rnd(.02,.09);}
+  }
+  function bell(f,t,gain,decay,bus,lp){
+    const out=G(1);const flt=F('lowpass',lp||6000,.5);chain(out,flt,bus||amb);
+    [[.5,.5],[1,1],[1.19,.5],[1.5,.35],[2,.45],[2.74,.2],[3.01,.16],[4.1,.08]].forEach(([m,a])=>{const o=osc('sine',f*m,t,decay+.1);const g=G(0);chain(o,g,out);env(g,t,.004,gain*a,decay*(1.2-m*.15));});
+  }
+  function bellsOrszawa(){const t=ctx.currentTime+.2;for(let i=0;i<9;i++){bell(i%3===0?196:i%3===1?233:262,t+i*1.25+rnd(0,.08),.05,5,amb,1100);}}
+  function bimbam(t=ctx.currentTime,g=.12){bell(988,t,g,1.4,sfx,7000);bell(784,t+.42,g,1.8,sfx,7000);}
+  function clack(t,gain,lp,bus){
+    const out=G(gain);const flt=F('lowpass',lp,.6);chain(out,flt,bus||sfx);
+    const o=osc('sine',95,t,.2);o.frequency.exponentialRampToValueAtTime(38,t+.14);const og=G(0);chain(o,og,out);env(og,t,.003,.9,.16);
+    const n=noiseSrc(noiseW,t,.06);const ng=G(0);chain(n,F('bandpass',1700,1.4),ng,out);env(ng,t,.001,.5,.05);
+    const m=osc('square',rnd(410,450),t,.18);const mg=G(0);chain(m,F('bandpass',1200,6),mg,out);env(mg,t,.001,.06,.12);
+  }
+  function tatata(t,gain,lp,bus,gap=.13){for(let i=0;i<3;i++)clack(t+i*gap,gain*(i===0?1:.8),lp,bus);}
+  function whistle(t,dur,gain,bus,lp){
+    const out=G(0);const flt=F('lowpass',lp||9000,.5);chain(out,flt,bus||sfx);
+    const vib=ctx.createOscillator();vib.frequency.value=5.2;const vg=G(4);chain(vib,vg);vib.start(t);vib.stop(t+dur+1);
+    [415,494,587].forEach(f=>{const o=osc('sawtooth',f,t,dur+.8);vg.connect(o.frequency);const bp=F('bandpass',f,9);const g=G(.5);chain(o,bp,g,out);});
+    const n=noiseSrc(noiseP,t,dur+.8);chain(n,F('bandpass',1100,3),G(.3),out);
+    out.gain.setValueAtTime(.0001,t);out.gain.linearRampToValueAtTime(gain,t+.25);out.gain.setValueAtTime(gain,t+dur);out.gain.exponentialRampToValueAtTime(.0001,t+dur+.8);
+  }
+  function brakes(t){
+    const out=G(0);chain(out,sfx);
+    const n=noiseSrc(noiseW,t,3.2);const bp=F('bandpass',3100,28);chain(n,bp,out);
+    const o=osc('sawtooth',2880,t,3.2);const og=G(.05);chain(o,F('bandpass',2900,20),og,out);
+    const lf=ctx.createOscillator();lf.frequency.value=7;const lg=G(90);chain(lf,lg,bp.frequency);lg.connect(o.frequency);lf.start(t);lf.stop(t+3.3);
+    out.gain.setValueAtTime(.0001,t);out.gain.linearRampToValueAtTime(.55,t+.2);out.gain.setValueAtTime(.5,t+2.2);out.gain.exponentialRampToValueAtTime(.0001,t+3.1);
+    // syk pary po zatrzymaniu
+    L.hiss.gain.setValueAtTime(0,t+2.6);L.hiss.gain.linearRampToValueAtTime(.09,t+2.9);L.hiss.gain.setTargetAtTime(.012,t+3.6,1.4);
+  }
+  function lever(t=ctx.currentTime){
+    clack(t,.7,2500);
+    [320,741,1180].forEach((f,i)=>{const o=osc('triangle',f,t+.04,.5);const g=G(0);chain(o,g,sfx);env(g,t+.04,.002,.05/(i+1),.35);});
+    const n=noiseSrc(noiseB,t,.25);const g=G(0);chain(n,F('bandpass',2400,.8),g,sfx);env(g,t,.02,.35,.2);
+  }
+  function hammer(t=ctx.currentTime){
+    [1480,2210,3350,4400].forEach((f,i)=>{const o=osc('sine',f*rnd(.98,1.02),t,.9);const g=G(0);chain(o,g,sfx);env(g,t,.001,.09/(i+1),.7);});
+    clack(t,.5,5000);
+  }
+  function stamp(t=ctx.currentTime){const o=osc('sine',70,t,.3);o.frequency.exponentialRampToValueAtTime(40,t+.2);const g=G(0);chain(o,g,sfx);env(g,t,.002,.9,.22);const n=noiseSrc(noiseW,t,.08);const ng=G(0);chain(n,F('lowpass',2200,.7),ng,sfx);env(ng,t,.001,.5,.07);}
+  function match(t=ctx.currentTime){const n=noiseSrc(noiseW,t,.3);const g=G(0);chain(n,F('highpass',2500,.7),g,sfx);env(g,t,.005,.25,.18);const n2=noiseSrc(noiseB,t+.12,.8);const g2=G(0);chain(n2,F('lowpass',500,.7),g2,sfx);env(g2,t+.12,.12,.35,.6);}
+  function click(t=ctx.currentTime){const n=noiseSrc(noiseW,t,.03);const g=G(0);chain(n,F('bandpass',3000,2),g,sfx);env(g,t,.001,.4,.03);}
+  function trumpet(t=ctx.currentTime){ // niewidzialne trąbki: pobudka odjazdu
+    const notes=[392,523,659,784,659,784];const out=G(0);const lp=F('lowpass',1800,1);chain(out,lp,mem);out.gain.value=.08;
+    let tt=t;notes.forEach((f,i)=>{const d=i===notes.length-1?.9:.24;const o=osc('sawtooth',f,tt,d);const g=G(0);chain(o,g,out);env(g,tt,.03,.5,d);tt+=d+.05;});
+  }
+
+  // ------ pociąg: rytm kół ------
+  const TR={on:false,dist:1,speed:1,next:0,bus:'sfx'};
+  function trainOn(bus){TR.on=true;TR.bus=bus||'sfx';TR.next=ctx?ctx.currentTime+.1:0;}
+  function trainOff(){TR.on=false; if(ctx){set(L.rumble.gain,0,.8);set(L.grumble.gain,0,.8);}}
+
+  // ------ nasłuch ------
+  let listening=false, listenMode='';
+  function setListen(on,mode){listening=on;listenMode=mode||'';if(!ctx)return;
+    set(ambLP.frequency,on?520:18000,on?.25:.6);set(amb.gain,on?.45:1,.4);
+    set(L.drone.gain,on?.12:0,.8);set(L.dronenoise.gain,on?.05:0,.8);
+    set(listenBus.gain,on?1:0,.4);
+  }
+
+  // ------ pętla sterująca ------
+  const ghostQ=[];
+  let windT=0;
+  function tick(){
+    if(!ctx||!window.S)return;
+    const t=ctx.currentTime, dt=.05, s=window.S;
+    // warstwy ciągłe
+    set(L.room.gain,.05*s.tone,1);
+    windT-=dt; if(windT<=0){windT=rnd(.6,2.2);const gust=rnd(.55,1.35);set(L.wind.gain,(.03+s.wind*.28)*gust,.9);set(L.windF.frequency,rnd(260,620)*(1+s.wind*.6),1.2);
+      set(L.howl.gain,Math.max(0,s.wind-.55)*.18*gust,1.1);set(L.howlF.frequency,rnd(480,1150),1.4);}
+    set(L.rain.gain,s.rain*.22,1);
+    const memBase=clamp(s.railtalk*.7+s.ghost*.9,0,1.2);
+    set(mem.gain,listening?1.25:memBase,.5);
+    // losowe zdarzenia
+    const ch=r=>Math.random()<r*dt;
+    if(ch(s.birds*1.3))bird();
+    if(ch(s.swallows*.5))swallow();
+    if(ch(s.crickets*9))cricket();
+    if(ch(s.frogs*.9))frog();
+    if(ch(s.crows*.2))crow();
+    const talk=s.railtalk+(listening&&listenMode==='gwar'?2.2:0)+(listening&&listenMode==='cicho'?.25:0);
+    if(ch(talk*3))railTick(t,listening||s.railtalk>.1?mem:amb);
+    if(listening&&listenMode==='gwar'&&ch(1.1))whisper(t,.9);
+    if(listening&&listenMode==='cicho'&&ch(.25))whisper(t,.25);
+    if(s.ghost>.3&&ch(.05*s.ghost))ghostQ.push('pass');
+    if(s.ghost>.3&&ch(.018*s.ghost))trumpet();
+    if(s.ghost>.3&&ch(.03*s.ghost))bimbam(t,.05);
+    if(listening&&listenMode==='echo'&&ch(.5))tatata(t,.12,700,mem,.14);
+    if(ghostQ.length){ghostQ.shift();ghostPass();}
+    // koła pociągu
+    if(TR.on){
+      const near=1-TR.dist;
+      const bus=TR.bus==='mem'?mem:sfx;
+      const busL=TR.bus==='mem'?L.grumble:L.rumble;
+      set(busL.gain,Math.pow(near,1.6)*.7+.02,.3);
+      if(TR.next<t-.3)TR.next=t+.02;
+      while(TR.next<t+.25){tatata(Math.max(TR.next,t),.06+Math.pow(near,1.5)*.9,300+near*5200,bus,.13/Math.max(.6,TR.speed));TR.next+=.95/Math.max(.3,TR.speed);}
+    }
+  }
+  function ghostPass(){ // pociąg-widmo przejeżdżający parowem
+    const t0=ctx.currentTime;let k=0;
+    const dur=9;
+    for(let tt=0;tt<dur;tt+=.62){const d=Math.abs(tt-dur/2)/(dur/2);const near=1-d;tatata(t0+tt,.03+near*.35,500+near*3000,mem,.11);k++;}
+    const g=L.grumble.gain;g.cancelScheduledValues(t0);g.setValueAtTime(g.value,t0);g.linearRampToValueAtTime(.35,t0+dur/2);g.linearRampToValueAtTime(0,t0+dur);
+    if(Math.random()<.7)whistle(t0+rnd(1,3),rnd(1.2,2.4),.12,mem,4000);
+    if(window.spawnGhost)window.spawnGhost();
+  }
+  function fadeAll(sec){if(!ctx)return;set(master.gain,0,sec/4);}
+  function restore(){if(!ctx)return;set(master.gain,muted?0:.95,1);}
+
+  return {start,setMuted,get muted(){return muted},get ctx(){return ctx},get started(){return started},
+    bird,bellsOrszawa,bimbam,tatata:(g,lp,bus)=>ctx&&tatata(ctx.currentTime+.05,g,lp,bus==='mem'?mem:sfx),whistle:(d,g,bus,lp)=>ctx&&whistle(ctx.currentTime+.05,d,g,bus==='mem'?mem:sfx,lp),
+    brakes:()=>ctx&&brakes(ctx.currentTime),lever:()=>ctx&&lever(),hammer:()=>ctx&&hammer(),stamp:()=>ctx&&stamp(),match:()=>ctx&&match(),click:()=>ctx&&click(),
+    railBurst:(n=8)=>{if(!ctx)return;for(let i=0;i<n;i++)railTick(ctx.currentTime+Math.random()*2,mem);},
+    whisperBurst:(n=3,l=.6)=>{if(!ctx)return;for(let i=0;i<n;i++)whisper(ctx.currentTime+i*.7+Math.random()*.4,l);},
+    ghostPass:()=>ctx&&ghostPass(),trumpet:()=>ctx&&trumpet(),
+    TR,trainOn,trainOff,setListen,fadeAll,restore,
+    hiss:(v)=>ctx&&set(L.hiss.gain,v,.8)};
+})();
+window.S=S;
+
+// ================= opowieść =================
+const $=s=>document.querySelector(s);
+const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const STORE='glucha-przestrzen-rozebrano';
+const store={get(){try{return localStorage.getItem(STORE)}catch(e){return null}},set(v){try{localStorage.setItem(STORE,v)}catch(e){}}};
+try{history.scrollRestoration='manual';}catch(e){}
+
+const BLOCKS=[
+  {id:'prolog',no:'Prolog',title:'Cięciwa i łuk',sub:'między Orszawą a Byliczem',preset:'prolog',r:[0,2],fig:true},
+  {id:'nominacja',no:'I',title:'Nominacja',sub:'Orszawa, biuro departamentu',preset:'prolog',r:[3,8],gate:'stamp'},
+  {id:'maj',no:'II · maj',title:'Budka w parowie',sub:'pierwsza niedziela na placówce',preset:'maj',r:[9,13]},
+  {id:'rewia',no:'III · maj',title:'Rewia',sub:'przeszło dwanaście kilometrów',preset:'rewia',r:[14,18],gate:'rail'},
+  {id:'przystanek',no:'IV · czerwiec',title:'Przystanek',sub:'od godziny siódmej',preset:'przystanek',r:[19,19],gate:'lamps'},
+  {id:'przystanek2',cont:true,preset:'przystanek',r:[20,22]},
+  {id:'sierpien',no:'V · sierpień',title:'Wieczór z Luśnią',sub:'na belce pod blokiem',preset:'sierpien',r:[23,46],gate:'listen1'},
+  {id:'sierpien2',cont:true,preset:'sierpien2',r:[47,88]},
+  {id:'jesien',no:'VI · październik',title:'Ćwiczenia i manewry',sub:'siedem miesięcy urzędowania',preset:'jesien',r:[89,90],gate:'manewry'},
+  {id:'jesien2',cont:true,preset:'jesien2',r:[91,94],gate:'listen2'},
+  {id:'jesien3',cont:true,preset:'jesien2',r:[95,97]},
+  {id:'listopad',no:'VII · listopad',title:'Odwieczerz',sub:'wśród wycia jesiennego wichru',preset:'listopad',r:[98,98],gate:'lever'},
+  {id:'listopad2',cont:true,preset:'listopad',r:[99,109]},
+  {id:'grudzien',no:'VIII · grudzień',title:'Godzina ziszczenia',sub:'noc śniegiem zawiana',preset:'grudzien',r:[110,117],gate:'signal'},
+  {id:'grudzien2',cont:true,preset:'pociag',r:[118,126],seq:true},
+  {id:'grudzien3',cont:true,preset:'pociag',r:[127,137],gate:'jazda'},
+  {id:'odjazd',cont:true,preset:'odjazd',r:[138,139]},
+  {id:'rano',no:'IX · grudzień',title:'Nazajutrz',sub:'mroźny poranek',preset:'rano',r:[140,143]},
+  {id:'epilog',no:'X · wiosna i lato',title:'Pętlica ożyła',sub:'do jesieni następnego roku',preset:'epilog',r:[144,146]}
+];
+const ONOMA=new Set([102,105,113,116,119,120,122,138]);
+const TREMBLE=/(Szyny gwarzą|Szyny gadają|szyny gwarzą)/g;
+
+const story=$('#story');
+const paraEls=[];
+const blockEls={};
+const gates={};
+function buildStory(){
+  for(const b of BLOCKS){
+    const sec=document.createElement('section');sec.className='block'+(b.cont?' cont':'');sec.dataset.id=b.id;sec.dataset.preset=b.preset;
+    if(!b.cont){const h=document.createElement('header');h.className='ch-head';
+      h.innerHTML=`<div class="ch-no">${esc(b.no)}</div><h2 class="ch-title">${esc(b.title)}</h2><div class="ch-sub">${esc(b.sub)}</div>`;sec.appendChild(h);}
+    if(b.fig)sec.appendChild(figMap());
+    for(let i=b.r[0];i<=b.r[1];i++){
+      const p=document.createElement('p');p.className='p';p.dataset.i=i;let t=PARAS[i];
+      if(t.trim().startsWith('—'))p.classList.add('dlg');
+      if(ONOMA.has(i))p.classList.add('onoma');
+      if(i===95)p.classList.add('whisper');
+      if(i===146)p.classList.add('final');
+      if(b.seq)p.classList.add('seq');
+      let html=esc(t);
+      html=html.replace(TREMBLE,m=>'<span class="tr">'+[...m].map((ch,k)=>`<span style="animation-delay:${(k*.09+Math.random()*.3).toFixed(2)}s">${ch===' '?'&nbsp;':ch}</span>`).join('')+'</span>');
+      p.innerHTML=html;sec.appendChild(p);paraEls[i]=p;
+    }
+    if(b.gate){const g=makeGate(b.gate);sec.appendChild(g);}
+    story.appendChild(sec);blockEls[b.id]=sec;
+  }
+  // ukryj wszystko po pierwszej nierozwiązanej bramce
+  let locked=false;
+  for(const b of BLOCKS){if(locked)blockEls[b.id].classList.add('hide');if(b.gate)locked=true;}
+}
+function unlockAfter(blockId){
+  const i=BLOCKS.findIndex(b=>b.id===blockId);
+  for(let k=i+1;k<BLOCKS.length;k++){blockEls[BLOCKS[k].id].classList.remove('hide');if(BLOCKS[k].gate)break;}
+  onScroll(true);
+}
+
+// ---------- mapa prologu ----------
+function figMap(){
+  const f=document.createElement('figure');f.className='figmap';
+  f.innerHTML=`<svg viewBox="0 0 520 250" role="img" aria-label="Schemat: stara pętlica łukiem na północ i nowa linia prosto jak strzała">
+  <defs><pattern id="marsh" width="10" height="7" patternUnits="userSpaceOnUse"><path d="M1 5h4M6 2h3" stroke="#8f8c81" stroke-width=".8"/></pattern></defs>
+  <ellipse cx="260" cy="176" rx="150" ry="34" fill="url(#marsh)" opacity=".55"/>
+  <text x="260" y="238" text-anchor="middle" fill="#8f8c81" font-size="11" font-style="italic" font-family="Old Standard TT, Georgia, serif">zasypane mokradła nad Wierszą</text>
+  <path id="arcbig" d="M30,200 C80,10 440,10 490,200" fill="none" stroke="#d8d2c2" stroke-width="2" stroke-dasharray="3 5" opacity=".75"/>
+  <line x1="30" y1="200" x2="490" y2="200" stroke="#d8d2c2" stroke-width="2.4"/>
+  <rect x="-9" y="-2.5" width="18" height="5" fill="#d8d2c2"><animateMotion dur="3.2s" repeatCount="indefinite" path="M30,200 L490,200"/></rect>
+  <rect x="-9" y="-2.5" width="18" height="5" fill="#d8d2c2" opacity=".6"><animateMotion dur="3.2s" begin="1.6s" repeatCount="indefinite" path="M490,200 L30,200"/></rect>
+  <path d="M286,58 L318,66" stroke="#d8d2c2" stroke-width="6" opacity=".7"/>
+  <text x="326" y="62" fill="#8f8c81" font-size="10" font-family="IBM Plex Mono, monospace">tunel</text>
+  <rect x="253" y="47" width="12" height="10" fill="none" stroke="#f0b440" stroke-width="1.6"/>
+  <text x="259" y="36" text-anchor="middle" fill="#f0b440" font-size="10" font-family="IBM Plex Mono, monospace">budka · przystanek</text>
+  <text x="120" y="88" fill="#8f8c81" font-size="10" font-family="IBM Plex Mono, monospace" transform="rotate(-38 120 88)">głucha przestrzeń · 12 km</text>
+  <text x="30" y="222" fill="#d8d2c2" font-size="11" font-family="IBM Plex Mono, monospace" letter-spacing="1.5">ORSZAWA</text>
+  <text x="490" y="222" text-anchor="end" fill="#d8d2c2" font-size="11" font-family="IBM Plex Mono, monospace" letter-spacing="1.5">BYLICZ</text>
+  <text x="260" y="194" text-anchor="middle" fill="#d8d2c2" font-size="10" font-family="IBM Plex Mono, monospace">nowa linia: cięciwa</text>
+  </svg><figcaption>Pociąg „zamiast omijać bagnisty teren w wielkim, silnie na północ wygiętym łuku, szedł teraz po jego cięciwie”. Łuk zamknięto i izolowano.</figcaption>`;
+  return f;
+}
+
+// ---------- dziennik służby ----------
+const logEl=$('#log');const LOG=[];
+logEl.innerHTML='<div class="ttl">Dziennik służby</div>';
+function log(when,what){
+  const e=document.createElement('div');e.className='e';e.innerHTML=`<i>${esc(when)}</i><span>${esc(what)}</span>`;logEl.appendChild(e);LOG.push(e);if(innerWidth<760)setTimeout(()=>e.classList.add('old'),6000);
+  const live=[...logEl.querySelectorAll('.e:not(.gone)')];if(live.length>4){live[0].classList.add('gone');setTimeout(()=>live[0].remove(),1300);}
+}
+
+// ---------- bramki ----------
+function gateShell(id,lead,right){
+  const g=document.createElement('div');g.className='gate';g.dataset.gate=id;
+  g.innerHTML=`<div class="lead"><span>${lead}</span><b class="state">${right||''}</b></div>`;
+  gates[id]={el:g,done:false};return g;
+}
+function gateDone(id,stateText,blockId){
+  const G=gates[id];if(G.done)return;G.done=true;G.el.classList.add('done');G.el.querySelector('.state').textContent=stateText||'wykonano';
+  unlockAfter(blockId);refreshDock();
+}
+function makeGate(kind){
+  const blockId=BLOCKS.find(b=>b.gate===kind).id;
+  if(kind==='stamp'){
+    const g=gateShell(kind,'Zadanie służbowe','czeka');
+    g.insertAdjacentHTML('beforeend',`<div class="card"><div class="hd"><span>Dyrekcja ruchu · Orszawa</span><span>L.dz. 12/Gł.</span></div>
+      <h4>Nominacja</h4><p>Pan <b>Szymon Wawera</b>, emerytowany konduktor, zostaje od dnia dzisiejszego dróżnikiem <i>„głuchej przestrzeni”</i> między Orszawą a Byliczem.</p><p>Bezinteresownie. Do czasu rozbiórki pętlicy.</p>
+      <div class="sig"><span>Dyrektor departamentu</span><span>Orszawa, w maju</span></div>
+      <div class="stamp" aria-hidden="true">Objęto służbę<small>posterunek km 6,2</small></div></div>
+      <div class="gate-row"><button class="btn" id="g-stamp">Przyłóż pieczęć</button></div>
+      <p class="hint">Wawera „ze łzami w oczach uścisnął dłoń zwierzchnika i wyszedł z biura szczęśliwy jak nigdy”.</p>`);
+    g.querySelector('#g-stamp').addEventListener('click',e=>{e.currentTarget.disabled=true;g.querySelector('.stamp').classList.add('on');setTimeout(()=>{AU.stamp();SC.shake=.25;},230);
+      log('maj','objęto służbę na głuchej przestrzeni');setTimeout(()=>gateDone(kind,'objęto',blockId),900);});
+    return g;
+  }
+  if(kind==='rail'){
+    const g=gateShell(kind,'Rewia · brakuje kilku metrów szyny','czeka');
+    let sl='';for(let x=20;x<600;x+=26)sl+=`<rect x="${x}" y="40" width="11" height="92" fill="#3a3129"/>`;
+    g.insertAdjacentHTML('beforeend',`<div class="railbox"><svg viewBox="0 0 620 210" aria-label="Tor z wyrwą w szynie">
+      ${sl}
+      <rect x="0" y="54" width="262" height="9" fill="#9aa19c"/><rect x="358" y="54" width="262" height="9" fill="#9aa19c"/>
+      <rect x="0" y="108" width="620" height="9" fill="#9aa19c"/>
+      <rect x="262" y="52" width="96" height="13" fill="none" stroke="#f0b440" stroke-dasharray="4 4" class="gaphint"/>
+      <g class="railpiece" tabindex="0" role="button" aria-label="Szyna: przeciągnij w wyrwę albo naciśnij Enter" transform="translate(120,170)">
+        <rect x="0" y="0" width="96" height="9" fill="#7c6a5a"/><rect x="0" y="0" width="96" height="2" fill="#a89883"/>
+        <text x="48" y="28" text-anchor="middle" font-size="11" fill="#8f8c81" font-family="IBM Plex Mono, monospace">sztaba spod mostka</text></g>
+      <g class="joints" style="display:none">
+        <circle class="joint" data-j="0" cx="262" cy="58.5" r="11" fill="rgba(240,180,64,.12)" stroke="#f0b440" tabindex="0" role="button" aria-label="Przekuj styk lewy"/>
+        <circle class="joint" data-j="1" cx="358" cy="58.5" r="11" fill="rgba(240,180,64,.12)" stroke="#f0b440" tabindex="0" role="button" aria-label="Przekuj styk prawy"/>
+      </g><g class="sparks" style="pointer-events:none"></g>
+      </svg></div><p class="hint">Przeciągnij sztabę w szczerbę toru, potem przekuj oba styki przy nitach.</p>`);
+    const svg=g.querySelector('svg'),piece=g.querySelector('.railpiece'),joints=g.querySelector('.joints'),hint=g.querySelector('.hint');
+    let pos={x:120,y:170},drag=null,placed=false;const hits=[0,0];
+    const pt=e=>{const r=svg.getBoundingClientRect();return {x:(e.clientX-r.left)/r.width*620,y:(e.clientY-r.top)/r.height*210};};
+    const place=()=>{placed=true;pos={x:262,y:54};piece.setAttribute('transform','translate(262,54)');piece.querySelector('text').remove();g.querySelector('.gaphint').remove();AU.lever();SC.shake=.15;joints.style.display='';hint.textContent='Szyna leży. Przekuj oba styki: stuknij w każdy po kilka razy.';joints.querySelector('.joint').focus({preventScroll:true});};
+    piece.addEventListener('pointerdown',e=>{if(placed)return;const p=pt(e);drag={dx:p.x-pos.x,dy:p.y-pos.y};piece.classList.add('drag');piece.setPointerCapture(e.pointerId);});
+    piece.addEventListener('pointermove',e=>{if(!drag)return;const p=pt(e);pos={x:p.x-drag.dx,y:p.y-drag.dy};piece.setAttribute('transform',`translate(${pos.x},${pos.y})`);});
+    const up=()=>{if(!drag)return;drag=null;piece.classList.remove('drag');if(Math.abs(pos.x-262)<34&&Math.abs(pos.y-54)<30)place();};
+    piece.addEventListener('pointerup',up);piece.addEventListener('pointercancel',up);
+    piece.addEventListener('keydown',e=>{if(!placed&&(e.key==='Enter'||e.key===' ')){e.preventDefault();place();}});
+    const strike=j=>{if(hits[j]>=3)return;hits[j]++;AU.hammer();SC.shake=.1;
+      const sp=g.querySelector('.sparks');const cxp=j?358:262;for(let k=0;k<7;k++){const l=document.createElementNS('http://www.w3.org/2000/svg','line');const a=Math.random()*Math.PI-Math.PI;const len=10+Math.random()*16;l.setAttribute('x1',cxp);l.setAttribute('y1',58);l.setAttribute('x2',cxp+Math.cos(a)*len);l.setAttribute('y2',58+Math.sin(a)*len);l.setAttribute('stroke','#f0b440');l.setAttribute('stroke-width','1.5');l.style.transition='opacity .5s';sp.appendChild(l);setTimeout(()=>l.style.opacity=0,60);setTimeout(()=>l.remove(),600);}
+      const c=joints.querySelector(`[data-j="${j}"]`);c.setAttribute('stroke-width',1+hits[j]*1.2);c.setAttribute('fill',`rgba(240,180,64,${.12+hits[j]*.15})`);if(hits[j]>=3){c.setAttribute('fill','none');c.setAttribute('stroke','#5fcf8f');}
+      if(hits[0]>=3&&hits[1]>=3){hint.textContent='Załatane do niepoznaki.';log('maj','km 7,4 · wstawiono szynę');setTimeout(()=>gateDone(kind,'załatano',blockId),700);}};
+    joints.querySelectorAll('.joint').forEach(c=>{c.addEventListener('click',()=>strike(+c.dataset.j));c.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();strike(+c.dataset.j);}});});
+    return g;
+  }
+  if(kind==='lamps'){
+    const g=gateShell(kind,'Godzina siódma','czeka');
+    const lampSvg=`<svg viewBox="0 0 42 62" aria-hidden="true"><circle class="halo" cx="21" cy="26" r="20" fill="var(--c,#ffcf7a)" opacity=".25"/><path d="M14 8h14l3 6H11z" fill="#2a2b29"/><rect class="glass" x="12" y="14" width="18" height="24" rx="1"/><path d="M12 14h18v24H12z" fill="none" stroke="#6b6b64"/><path d="M11 38h20l-3 5H14z" fill="#2a2b29"/><rect x="19.5" y="43" width="3" height="18" fill="#2a2b29"/></svg>`;
+    g.insertAdjacentHTML('beforeend',`<div class="gate-row" style="margin:0 0 .9rem;justify-content:space-between"><span class="clock">19:00</span><span class="lead" style="margin:0">rozbłyskiwały latarnie</span></div>
+      <div class="lamps"><button class="lamp" data-l="0">${lampSvg}<span>latarnia I</span></button><button class="lamp" data-l="1">${lampSvg}<span>latarnia II</span></button><button class="lamp" data-l="2" style="--c:#7ef0a8">${lampSvg}<span>zwrotnica</span></button></div>
+      <p class="hint">Zapal obie latarnie stacyjne i zielone światło za szybką zwrotnicy.</p>`);
+    let n=0;
+    g.querySelectorAll('.lamp').forEach(b=>b.addEventListener('click',()=>{if(b.classList.contains('lit'))return;b.classList.add('lit');AU.match();SC.lampT[+b.dataset.l]=1;n++;
+      if(n===3){log('19:00','latarnie zapalone');setTimeout(()=>gateDone(kind,'palą się',blockId),600);}}));
+    return g;
+  }
+  if(kind==='listen1'||kind==='listen2'){
+    const g=gateShell(kind,'Nasłuch','czeka');
+    g.insertAdjacentHTML('beforeend',kind==='listen1'
+      ?`<p class="hint" style="margin-top:0">Przyłóż ucho do szyny. Przytrzymaj przycisk na dole ekranu albo spację i nie puszczaj, dopóki pierścień się nie zamknie. „Tylko trzeba umieć patrzeć i słuchać.”</p>`
+      :`<p class="hint" style="margin-top:0">„I przypadał do toru, przykładał ucho do ziemi i słuchał, słuchał z zapartym tchem.” Przytrzymaj dłużej niż ostatnio.</p>`);
+    return g;
+  }
+  if(kind==='manewry'||kind==='lever'){
+    const g=gateShell(kind,kind==='manewry'?'Ćwiczenia i manewry':'Manewry ze zwrotnicą','czeka');
+    const leverSvg=`<svg viewBox="0 0 78 96" class="lever" aria-hidden="true"><rect x="10" y="80" width="58" height="10" fill="#2e2f2c"/><path d="M22 80a17 17 0 0 1 34 0" fill="none" stroke="#4a4b46" stroke-width="3"/><g class="lever-h" style="transform-origin:39px 82px;transform:rotate(-26deg)"><rect x="36.5" y="18" width="5" height="64" fill="#8b8f8a"/><rect x="31" y="12" width="16" height="10" rx="2" fill="#c8362b"/></g><circle cx="39" cy="82" r="5" fill="#1d1e1c" stroke="#6b6b64"/></svg>`;
+    const inst=(k,label,svg)=>`<div class="inst" data-k="${k}" tabindex="0" role="button" aria-label="${label}"><span class="nm">${label}</span>${svg}<span class="st">·</span></div>`;
+    let html='<div class="instr">'+inst('lever','kolba stawidła',leverSvg);
+    if(kind==='manewry'){
+      html+=inst('disc','tarcza',`<svg viewBox="0 0 78 96" aria-hidden="true"><rect x="37" y="46" width="4" height="46" fill="#6b6b64"/><g class="disc" style="transition:transform .5s;transform-origin:39px 92px;transform:rotate(80deg)"><circle cx="39" cy="30" r="21" fill="#e9e4d6"/><circle class="face" cx="39" cy="30" r="15" fill="#3a3b37"/></g></svg>`);
+      html+=inst('sema','semafor',`<svg viewBox="0 0 78 96" aria-hidden="true"><rect x="47" y="8" width="4" height="86" fill="#6b6b64"/><g class="sema" style="transition:transform .7s cubic-bezier(.3,1.4,.5,1);transform-origin:49px 22px"><rect x="9" y="18" width="40" height="8" fill="#c8362b"/><rect x="18" y="18" width="6" height="8" fill="#e9e4d6"/></g><circle class="slamp" cx="49" cy="36" r="4" fill="#5a1d18"/></svg>`);
+    }
+    html+='</div><p class="hint">'+(kind==='manewry'?'Przełóż kolbę stawidła (przeciągnij w prawo), podnieś tarczę na zielono, otwórz semafor. „Dwa razy na dzień i raz w ciągu nocy”.':'Przełóż kolbę stawidła. Przeciągnij w prawo.')+'</p>';
+    g.insertAdjacentHTML('beforeend',html);
+    const ok={lever:false,disc:kind!=='manewry',sema:kind!=='manewry'};
+    const check=()=>{if(ok.lever&&ok.disc&&ok.sema){
+      if(kind==='manewry'){log('paźdz.','manewry: stawidło, tarcza, semafor');setTimeout(()=>gateDone(kind,'wykonano',blockId),700);}
+    }};
+    const mark=(k,t)=>{const el=g.querySelector(`[data-k="${k}"]`);el.classList.add('ok');el.querySelector('.st').textContent=t;};
+    // kolba
+    const lv=g.querySelector('[data-k="lever"]'),lh=lv.querySelector('.lever-h');let ang=-26,ldrag=null,thrown=false;
+    const setAng=a=>{ang=clamp(a,-26,26);lh.style.transform=`rotate(${ang}deg)`;};
+    const throwIt=()=>{if(thrown)return;thrown=true;setAng(26);AU.lever();SC.shake=.12;
+      if(kind==='manewry'){mark('lever','przełożona');ok.lever=true;check();}
+      else{ // listopad: „Przysłyszało mi się czy co?”
+        mark('lever','…');lv.querySelector('.st').textContent='co to?';
+        setTimeout(()=>{AU.trainOn('mem');AU.TR.dist=.93;AU.TR.speed=1;},600);
+        setTimeout(()=>{AU.TR.dist=.86;},2200);
+        setTimeout(()=>{AU.trainOff();setAng(-26);lh.style.transition='transform .4s';mark('lever','wypuszczona z rąk');log('listop.','od tunelu: ta, ta, ta');gateDone(kind,'usłyszał',blockId);},5200);
+      }};
+    lv.addEventListener('pointerdown',e=>{if(thrown)return;ldrag={x:e.clientX,a:ang};lv.setPointerCapture(e.pointerId);});
+    lv.addEventListener('pointermove',e=>{if(!ldrag)return;setAng(ldrag.a+(e.clientX-ldrag.x)*.9);if(ang>20)throwIt();});
+    const lup=()=>{if(!ldrag)return;ldrag=null;if(!thrown)setAng(-26);};
+    lv.addEventListener('pointerup',lup);lv.addEventListener('pointercancel',lup);
+    lv.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '||e.key==='ArrowRight'){e.preventDefault();throwIt();}});
+    if(kind==='manewry'){
+      const dv=g.querySelector('[data-k="disc"]'),disc=dv.querySelector('.disc'),face=dv.querySelector('.face');let raised=false,green=false;
+      const flip=()=>{AU.click();if(!raised){raised=true;green=true;disc.style.transform='rotate(0deg)';}else{green=!green;}
+        face.setAttribute('fill',green?'#3fae6c':'#c8362b');SC.alarmT=green?0:1;
+        if(green){mark('disc','zielona');ok.disc=true;check();}else{dv.querySelector('.st').textContent='rubinowa · alarm';}};
+      dv.addEventListener('click',flip);dv.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();flip();}});
+      const sv=g.querySelector('[data-k="sema"]'),arm=sv.querySelector('.sema'),sl=sv.querySelector('.slamp');
+      const open=()=>{if(ok.sema)return;arm.style.transform='rotate(40deg)';sl.setAttribute('fill','#5fcf8f');AU.lever();SC.semaT=1;mark('sema','wolna droga');ok.sema=true;check();};
+      sv.addEventListener('click',open);sv.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}});
+    }
+    return g;
+  }
+  if(kind==='signal'){
+    const g=gateShell(kind,'Sygnał świetlny','czeka');
+    g.insertAdjacentHTML('beforeend',`<p class="hint" style="margin-top:0">Podnieś sygnał i trzymaj go w górze: przycisk na dole ekranu albo spacja. Pociąg jedzie tylko wtedy, gdy czekasz.</p>`);
+    return g;
+  }
+  if(kind==='jazda'){
+    const g=gateShell(kind,'Odjazd','czeka');
+    g.insertAdjacentHTML('beforeend',`<p class="hint" style="margin-top:0">„I wszedłszy na stopień wagonu jak przed laty, podniósł latarkę w stronę maszyny i krzyknął gromkim głosem”.</p>`);
+    return g;
+  }
+}
+
+// ---------- dock: przytrzymaj / kliknij ----------
+const dock=$('#dock'),dbtn=$('#dock-btn'),dlabel=$('#dock-label'),dsub=$('#dock-sub'),dring=dbtn.querySelector('.fg'),dico=dbtn.querySelector('.ring');
+let DCFG=null,holding=false,holdT=0,holdStart=0;
+function dockSet(cfg){
+  if(DCFG&&cfg&&DCFG.id===cfg.id)return;
+  if(holding)endHold();
+  DCFG=cfg;
+  if(!cfg){dock.classList.remove('on');return;}
+  dlabel.textContent=cfg.label;dsub.textContent=cfg.sub||'';dbtn.classList.toggle('big',!!cfg.big);dico.style.display=cfg.big?'none':'';
+  dring.style.strokeDashoffset=100.5;holdT=0;dock.classList.add('on');
+}
+function startHold(){if(!DCFG||holding)return;if(DCFG.click){DCFG.click();return;}holding=true;holdStart=performance.now();holdT=0;dock.classList.add('holding');DCFG.start&&DCFG.start();}
+function endHold(){if(!holding)return;holding=false;dock.classList.remove('holding');const c=DCFG;c&&c.end&&c.end(holdT);}
+dbtn.addEventListener('pointerdown',e=>{e.preventDefault();dbtn.setPointerCapture&&dbtn.setPointerCapture(e.pointerId);startHold();});
+['pointerup','pointercancel','lostpointercapture'].forEach(ev=>dbtn.addEventListener(ev,endHold));
+dbtn.addEventListener('keydown',e=>{if(e.key==='Enter'&&DCFG&&DCFG.click){e.preventDefault();DCFG.click();}});
+addEventListener('keydown',e=>{if(e.code!=='Space'||!DCFG||e.target.closest&&e.target.closest('dialog,input,textarea'))return;
+  const t=e.target;if(t&&t.closest&&t.closest('.gate:not(.done)')&&t.classList&&(t.classList.contains('joint')||t.classList.contains('railpiece')||t.classList.contains('inst')))return;
+  e.preventDefault();if(!e.repeat)startHold();});
+addEventListener('keyup',e=>{if(e.code==='Space'&&DCFG){e.preventDefault();endHold();}});
+
+function listenStart(mode){AU.setListen(true,mode);SC.listenT=1;document.body.classList.add('dim-story');}
+function listenEnd(){AU.setListen(false);SC.listenT=0;document.body.classList.remove('dim-story');}
+
+const LISTEN_MODE={sierpien:'gwar',sierpien2:'gwar',jesien:'cicho',jesien2:'cicho',listopad:'echo',grudzien:'cicho',epilog:'echo'};
+let freeListen=false;
+const dockCfgs={
+  listen1:{id:'listen1',label:'Przyłóż ucho do szyny',sub:'przytrzymaj · spacja',need:3.6,
+    start(){listenStart('gwar');},hold(dt){holdT+=dt;},
+    end(t){listenEnd();if(t>=this.need){log('sierp.','nasłuch: szyny gwarzą');freeListen=true;gateDone('listen1','szyny gwarzą','sierpien');}else{dsub.textContent='Za krótko. Nie puszczaj, dopóki pierścień się nie zamknie.';holdT=0;}}},
+  listen2:{id:'listen2',label:'Przyłóż ucho do toru',sub:'przytrzymaj dłużej',need:6,
+    start(){listenStart('cicho');},hold(dt){holdT+=dt;},
+    end(t){listenEnd();if(t>=this.need){log('paźdz.','nasłuch: jeszcze nie');gateDone('listen2','jeszcze nie','jesien2');}else{dsub.textContent='Jeszcze trochę dłużej.';holdT=0;}}},
+  free:{id:'free',label:'Nasłuchuj',sub:'przytrzymaj · spacja',
+    start(){listenStart(LISTEN_MODE[ACTIVE]||'cicho');},hold(dt){holdT+=dt;},end(){listenEnd();holdT=0;}},
+  signal:{id:'signal',label:'Podnieś sygnał',sub:'trzymaj w górze · spacja',
+    start(){seqHold(true);},hold(dt){holdT+=dt;},end(){seqHold(false);}},
+  jazda:{id:'jazda',label:'Jazda!',big:true,sub:'',click(){departure();}}
+};
+
+// widoczność bramek
+const gateVisible={};
+const gio=new IntersectionObserver(es=>{for(const e of es){gateVisible[e.target.dataset.gate]=e.isIntersecting;}refreshDock();},{rootMargin:'0px 0px -10% 0px',threshold:.15});
+function refreshDock(){
+  if(!STARTED){dockSet(null);return;}
+  for(const k of ['listen1','listen2','signal','jazda']){const G=gates[k];if(G&&!G.done&&gateVisible[k]&&!blockEls[BLOCKS.find(b=>b.gate===k).id].classList.contains('hide')){if(k==='signal'&&SEQ.done)continue;dockSet(dockCfgs[k]);return;}}
+  if(SEQ.active&&!SEQ.done){dockSet(dockCfgs.signal);return;}
+  if(freeListen&&LISTEN_MODE[ACTIVE]&&!SEQ.active&&!ENDING){dockSet(dockCfgs.free);return;}
+  dockSet(null);
+}
+
+// ---------- sekwencja nadjeżdżania ----------
+const SEQ={active:false,done:false,p:0,holding:false,revealed:0};
+const SEQ_AT=[[118,0],[119,.1],[120,.22],[121,.34],[122,.46],[123,.6],[124,.74],[125,.84]];
+let OVR={};
+function seqHold(on){
+  SEQ.holding=on;
+  if(on&&!SEQ.active){SEQ.active=true;blockEls.grudzien2.classList.remove('hide');document.body.classList.add('locked');
+    TRN.active=true;TRN.z=250;TRN.v=0;TRN.stopped=false;TRN.lit=0;AU.trainOn('sfx');AU.TR.dist=1;AU.TR.speed=.9;log('grudz.','sygnał podniesiony');
+    const G=gates.signal;G.done=true;G.el.classList.add('done');G.el.querySelector('.state').textContent='w górze';}
+  if(on){SC.my=.22;dsub.textContent='trzymaj w górze';}else if(!SEQ.done){dsub.textContent='Nie opuszczaj sygnału…';}
+}
+function seqStep(dt){
+  if(!SEQ.active||SEQ.done)return;
+  if(SEQ.holding)SEQ.p=Math.min(1,SEQ.p+dt/17);
+  const e=smooth(SEQ.p);
+  TRN.z=lerp(250,16,1-Math.pow(1-e,1.35));
+  AU.TR.dist=clamp(1-SEQ.p*.95+(SEQ.holding?0:.12),0,1);AU.TR.speed=lerp(.9,1.6,SEQ.p)*(1-Math.max(0,SEQ.p-.9)*4);
+  dring.style.strokeDashoffset=100.5*(1-SEQ.p);
+  for(const [i,th] of SEQ_AT){if(SEQ.p>=th&&!paraEls[i].classList.contains('on')){paraEls[i].classList.add('on','seen');if(ONOMA.has(i)){paraEls[i].classList.add('beat');}SEQ.last=paraEls[i];scrollToEl(paraEls[i]);}}
+  if(SEQ.p>=1){SEQ.done=true;SEQ.holding=false;
+    paraEls[126].classList.add('on','seen');SEQ.last=paraEls[126];scrollToEl(paraEls[126]);
+    AU.brakes();SC.shake=1;setTimeout(()=>{AU.trainOff();TRN.stopped=true;},2600);
+    let lit=0;const li=setInterval(()=>{lit+=.05;TRN.lit=Math.min(1,lit);if(lit>=1)clearInterval(li);},80);
+    OVR={dark:.5};applyPreset();
+    log('grudz.','pociąg zatrzymał się przed przystankiem');
+    setTimeout(()=>{document.body.classList.remove('locked');unlockAfter('grudzien2');refreshDock();},3400);
+  }
+}
+function scrollToEl(el){const r=el.getBoundingClientRect();scrollTo({top:scrollY+r.top-innerHeight*.42,behavior:REDUCED?'auto':'smooth'});}
+
+// ---------- odjazd ----------
+let DEPARTED=false;
+function departure(){
+  if(DEPARTED)return;DEPARTED=true;gates.jazda.done=true;gates.jazda.el.classList.add('done');gates.jazda.el.querySelector('.state').textContent='jazda';
+  dockSet(null);blockEls.odjazd.classList.remove('hide');document.body.classList.add('locked');
+  log('grudz.','Jazda!');
+  scrollToEl(paraEls[138]);paraEls[138].classList.add('beat','seen');
+  AU.whistle(2.8,.34,'sfx',9000);AU.hiss(0);
+  setTimeout(()=>{TRN.departing=true;TRN.v=1;AU.trainOn('sfx');AU.TR.dist=.05;AU.TR.speed=.5;scrollToEl(paraEls[139]);paraEls[139].classList.add('seen');},1500);
+  let sp=.5;const acc=setInterval(()=>{sp=Math.min(3.4,sp+.12);AU.TR.speed=sp;},250);
+  setTimeout(()=>{$('#flash').style.transition='opacity 2.2s ease';$('#flash').style.opacity=1;AU.whistle(3.5,.2,'sfx',5000);},6200);
+  setTimeout(()=>{clearInterval(acc);AU.trainOff();TRN.active=false;OVR={};
+    blockEls.rano.classList.remove('hide');blockEls.epilog.classList.remove('hide');
+    document.body.classList.add('frost');
+    const r=blockEls.rano.getBoundingClientRect();scrollTo({top:scrollY+r.top-innerHeight*.12,behavior:'auto'});
+    onScroll(true);
+    setTimeout(()=>{$('#flash').style.transition='opacity 5s ease';$('#flash').style.opacity=0;document.body.classList.remove('locked');},500);
+  },9000);
+}
+
+// ---------- rozbiórka ----------
+let ENDING=false;
+function dismantle(){
+  if(ENDING)return;ENDING=true;dockSet(null);if(holding)endHold();
+  log('jesień','usunięto szyny · rozebrano budkę');
+  let k=0;const clank=setInterval(()=>{AU.hammer();k++;if(k>6)clearInterval(clank);},900);
+  SC.railsT=0;setTimeout(()=>{SC.boothT=0;},3500);
+  const arc=$('#mm-arc');const len=arc.getTotalLength();arc.style.strokeDasharray=len;arc.style.strokeDashoffset=0;arc.style.transition='stroke-dashoffset 9s ease';requestAnimationFrame(()=>arc.style.strokeDashoffset=-len);
+  $('#mm-booth').style.transition='opacity 4s';$('#mm-booth').style.opacity=0;$('#mm-dot').style.transition='opacity 4s';$('#mm-dot').style.opacity=0;
+  setTimeout(()=>{OVR={ghost:0};applyPreset();AU.fadeAll(7);},5500);
+  setTimeout(()=>{[...logEl.querySelectorAll('.e')].forEach((e,i)=>setTimeout(()=>e.classList.add('gone'),i*500));},7000);
+  setTimeout(()=>{presetTarget('koniec');FORCE='koniec';store.set('1');$('#end').classList.add('on');},12000);
+}
+window.spawnGhost=()=>{GHOSTS.push({z:ZT+5,v:24,a:.9,t:0});};
+
+// ---------- przewijanie ----------
+let ACTIVE='prolog',FORCE=null,STARTED=false;
+const firedSfx=new Set();
+const SFX={
+  13:()=>AU.bellsOrszawa(),
+  22:()=>{SC.branchT=1;AU.hammer();setTimeout(()=>AU.hammer(),700);setTimeout(()=>AU.hammer(),1400);log('czerw.','Luśnia przywrócił odgałęzienie');},
+  46:()=>{AU.railBurst(6);AU.whisperBurst(2,.25);},
+  47:()=>AU.railBurst(12),
+  67:()=>AU.whistle(1.8,.06,'mem',2600),
+  85:()=>{[0,1,2].forEach(i=>setTimeout(()=>AU.tatata(.08,700,'mem'),i*950));},
+  102:()=>{[0,1,2].forEach(i=>setTimeout(()=>AU.tatata(.14+i*.03,900,'mem'),i*900));},
+  105:()=>{[0,1,2,3].forEach(i=>setTimeout(()=>AU.tatata(.22-i*.04,1100-i*150,'mem'),i*900));},
+  110:()=>AU.bimbam(),
+  113:()=>{AU.bimbam();setTimeout(()=>AU.bimbam(),1300);},
+  116:()=>AU.bimbam(),
+  144:()=>AU.ghostPass(),
+  146:()=>setTimeout(dismantle,2500)
+};
+const pio=new IntersectionObserver(es=>{for(const e of es){if(!e.isIntersecting)continue;const el=e.target;if(el.classList.contains('seq')&&!el.classList.contains('on'))continue;el.classList.add('seen');
+  const i=+el.dataset.i;if(STARTED&&SFX[i]&&!firedSfx.has(i)){firedSfx.add(i);SFX[i]();if(ONOMA.has(i))el.classList.add('beat');}}},{rootMargin:'-28% 0px -28% 0px'});
+
+function applyPreset(){if(FORCE){presetTarget(FORCE);return;}presetTarget(BLOCKS.find(b=>b.id===ACTIVE_BLOCK).preset,OVR);}
+let ACTIVE_BLOCK='prolog',lastY=scrollY,ticking=false;
+function onScroll(force){
+  const dy=scrollY-lastY;lastY=scrollY;
+  if(S.walk>.05)SC.walk+=dy*.018*S.walk;
+  if(ticking&&!force)return;ticking=true;
+  requestAnimationFrame(()=>{ticking=false;
+    const mid=innerHeight*.55;let cur=BLOCKS[0].id;
+    for(const b of BLOCKS){const el=blockEls[b.id];if(el.classList.contains('hide'))continue;if(el.getBoundingClientRect().top<mid)cur=b.id;}
+    if(cur!==ACTIVE_BLOCK||force===true){ACTIVE_BLOCK=cur;const pr=BLOCKS.find(b=>b.id===cur).preset;ACTIVE=pr;applyPreset();
+      if(!ENDING)document.body.classList.toggle('frost',pr==='rano');refreshDock();}
+    // postęp: akapit najbliżej środka
+    let best=0,bd=1e9;for(let i=0;i<paraEls.length;i++){const el=paraEls[i];if(!el||el.offsetParent===null)continue;const r=el.getBoundingClientRect();const d=Math.abs(r.top+r.height/2-mid);if(d<bd){bd=d;best=i;}}
+    setProgress(best/(PARAS.length-1));
+  });
+}
+addEventListener('scroll',()=>onScroll(false),{passive:true});
+const arcP=$('#mm-arc'),dot=$('#mm-dot'),kmEl=$('#km');let arcLen=0;
+function setProgress(p){if(!arcLen)arcLen=arcP.getTotalLength();const q=arcP.getPointAtLength(arcLen*p);dot.setAttribute('cx',q.x.toFixed(1));dot.setAttribute('cy',q.y.toFixed(1));kmEl.textContent='km '+(p*12.3).toFixed(1).replace('.',',');}
+
+// ---------- latarnia (kursor) ----------
+const night=$('#night');
+function setLantern(x,y){SC.mx=x/innerWidth;SC.my=y/innerHeight;}
+addEventListener('pointermove',e=>{if(!SEQ.holding)setLantern(e.clientX,e.clientY);},{passive:true});
+addEventListener('pointerdown',e=>{if(e.pointerType!=='mouse'&&!SEQ.holding)setLantern(e.clientX,e.clientY);},{passive:true});
+
+// ---------- klatka ----------
+let mmT=0;const mmTrain=$('#mm-train');
+window.onFrame=dt=>{
+  if(holding&&DCFG&&DCFG.hold){holdT=(performance.now()-holdStart)/1000;if(DCFG.need){dring.style.strokeDashoffset=100.5*(1-clamp(holdT/DCFG.need,0,1));}}
+  seqStep(dt);
+  // noc: widać tylko w kręgu latarni
+  let lr=125,mx=SC.mx*innerWidth,my=SC.my*innerHeight;
+  if(SEQ.active&&SEQ.last){const r=SEQ.last.getBoundingClientRect();mx=r.left+r.width*.5;my=r.top+r.height*.5;lr=150+TRN.light*260;}
+  if(TRN.stopped||SEQ.done)lr=520;
+  night.style.setProperty('--mx',mx+'px');night.style.setProperty('--my',my+'px');night.style.setProperty('--lr',lr+'px');
+  night.style.opacity=clamp(S.dark,0,1).toFixed(3);
+  // nowa linia na schemacie: pociągi po cięciwie
+  mmT=(mmT+dt*.35)%1;const x=14+172*mmT;mmTrain.setAttribute('x1',x.toFixed(1));mmTrain.setAttribute('x2',Math.min(186,x+14).toFixed(1));
+};
+
+// ---------- start ----------
+buildStory();
+Object.keys(gates).forEach(k=>gio.observe(gates[k].el));
+paraEls.forEach(p=>p&&pio.observe(p));
+document.body.classList.add('locked');
+if(store.get()==='1'){
+  $('#intro-p1').textContent='Pod jesień następnego roku usunięto szyny i rozebrano budkę dróżnika. Wszystko ucichło i głucha przestrzeń zamilkła na zawsze.';
+  $('#intro-p2').textContent='Byłeś tu już. Nic tu nie zostało.';
+  $('#enter').textContent='Przyłóż ucho mimo to';
+  $('#mm-arc').style.opacity=.15;
+}
+function begin(mute){
+  AU.start(mute);STARTED=true;$('#intro').classList.add('out');document.body.classList.remove('locked');
+  $('#mm-arc').style.opacity='';
+  setTimeout(()=>{$('#intro').hidden=true;},2500);
+  sndBtn.setAttribute('aria-pressed',String(!mute));sndBtn.textContent=mute?'Dźwięk: wył.':'Dźwięk: wł.';
+  scrollTo(0,0);onScroll(true);
+  // nowa linia: pociąg przelatuje cięciwą, daleko
+  setTimeout(()=>AU.tatata(.05,600,'sfx'),1800);
+}
+const sndBtn=$('#snd');
+$('#enter').addEventListener('click',()=>begin(false));
+$('#enter-mute').addEventListener('click',()=>begin(true));
+sndBtn.addEventListener('click',()=>{const m=!AU.muted;AU.setMuted(m);sndBtn.setAttribute('aria-pressed',String(!m));sndBtn.textContent=m?'Dźwięk: wył.':'Dźwięk: wł.';});
+const nota=$('#nota');
+const openNota=()=>{try{nota.showModal();}catch(e){nota.setAttribute('open','');}};
+$('#nota-btn').addEventListener('click',openNota);$('#nota-btn2').addEventListener('click',openNota);
+$('#nota-close').addEventListener('click',()=>nota.close());
+$('#again').addEventListener('click',()=>{scrollTo(0,0);location.reload();});
+scrollTo(0,0);
+
+</script>
+</body>
+</html>

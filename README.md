@@ -7,7 +7,7 @@ toru, którym od roku nie przejechał żaden pociąg. Ktoś jednak musi go pilno
 
 Najlepiej w słuchawkach, w ciemnym pokoju.
 
-**Czytaj:** https://mrmarczyk.github.io/silent-space/
+**Czytaj:** https://mrmarczyk.github.io/deaf-space/
 
 ---
 
